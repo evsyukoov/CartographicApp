@@ -18,8 +18,10 @@ public class Converter {
     }
 
     public int readFile() {
-        if (transformator.initTransformation() == 0)
+        if (transformator.initTransformation() == 0) {
+            Log.debug("Bad transformation parametrs");
             return (0);
+        }
         BufferedReader fr = null;
         try {
             fr = new BufferedReader(new FileReader(file));
