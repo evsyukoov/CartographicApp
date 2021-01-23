@@ -17,6 +17,7 @@ public class ClientDAO extends DAO
     private final String SELECT = "SELECT Type, Sk FROM clients WHERE id = ?";
     private final String ID = "SELECT id FROM clients WHERE id = ?";
     private final String ADD = "INSERT INTO clients(id) VALUES(?)";
+    private final String GETSTATE = "SELECT state FROM clients WHERE id = ?";
 
     // то что выбрал клиент, забираем из БД
     private String choosedSK;
@@ -78,6 +79,15 @@ public class ClientDAO extends DAO
         ps.setLong(2, clientId);
         ps.executeUpdate();
         closePrepareStatement(ps);
+    }
+
+    public long  getClientState() throws SQLException
+    {
+        PreparedStatement ps = connection.prepareStatement(GETSTATE);
+        ps.setLong(1, clientId);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        return rs.getLong(1);
     }
 
     public void  getData() throws SQLException
