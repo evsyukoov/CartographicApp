@@ -1,4 +1,4 @@
-package bot.dao;
+package dao;
 
 import Helper.SystemParam;
 

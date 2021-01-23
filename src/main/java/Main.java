@@ -1,8 +1,7 @@
 import Helper.Helper;
-import bot.dao.DAO;
-import bot.dao.DownloadDAO;
-import bot.dao.SelectDAO;
-import bot.dao.ClientDAO;
+import dao.DAO;
+import dao.DownloadDAO;
+import dao.ClientDAO;
 
 import java.io.File;
 import java.io.IOException;
