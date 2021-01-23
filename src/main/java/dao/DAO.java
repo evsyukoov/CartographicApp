@@ -8,7 +8,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public abstract class DAO {
+public class DAO {
     protected static Connection connection = null;
     private final String URL = "localhost:3036/transform_bot";
     private final String CONNECTION = "jdbc:mysql://localhost:3306/transform_bot?allowPublicKeyRetrieval=true&useSSL=false" +
@@ -23,6 +23,10 @@ public abstract class DAO {
     public void selectZone(String zone) throws SQLException{}
 
     public void selectParam(String type, String sk, Integer zone) throws SQLException{}
+
+    public boolean addNewClient(long clientId) throws SQLException{
+        return true;
+    }
 
     public void closePrepareStatement(PreparedStatement ps) {
         if (ps != null) {
