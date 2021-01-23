@@ -50,9 +50,6 @@ public class SelectDAO extends DAO{
                 sk.add(next);
         }
         closePrepareStatement(ps);
-        for (String s : sk) {
-            System.out.println(s);
-        }
     }
 
     public void selectZone(String sk) throws SQLException

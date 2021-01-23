@@ -2,6 +2,7 @@ import Helper.Helper;
 import bot.dao.DAO;
 import bot.dao.DownloadDAO;
 import bot.dao.SelectDAO;
+import bot.dao.ClientDAO;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,12 +25,12 @@ public class Main {
 //        Helper help = new Helper();
 //        help.read(file);
 
-        SelectDAO dao = new SelectDAO();
+        ClientDAO dao = new ClientDAO(1);
         dao.register();
         try {
             dao.startConnection();
-            dao.selectParam("MSK", "68",2);
-            System.out.println(dao.getParam());
+            dao.getData();
+            System.out.println(String.format("%s %s", dao.getChoosedType(), dao.getChoosedSK()));
         }
         catch (Exception e)
         {
