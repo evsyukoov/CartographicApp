@@ -16,7 +16,13 @@ public abstract class DAO {
     private final String LOGIN = "root";
     private final String PASS = "1111";
 
-    public abstract void  startDownload() throws SQLException;
+    public void selectTypes() throws SQLException{}
+
+    public void selectSK(String type) throws SQLException{}
+
+    public void selectZone(String zone) throws SQLException{}
+
+    public void selectParam(String type, String sk, Integer zone) throws SQLException{}
 
     public void closePrepareStatement(PreparedStatement ps) {
         if (ps != null) {

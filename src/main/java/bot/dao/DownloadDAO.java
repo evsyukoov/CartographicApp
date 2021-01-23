@@ -14,7 +14,6 @@ import java.util.LinkedList;
 public class DownloadDAO extends DAO {
     private final String DOWNLOAD = "INSERT INTO coordinate_systems(Type, Sk, Param, Zone) VALUES(?,?,?,?)";
 
-    @Override
     public void startDownload() throws SQLException {
         File file = new File("./projections.txt");
         Helper helper = new Helper();
