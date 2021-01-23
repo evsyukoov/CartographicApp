@@ -32,6 +32,19 @@
             <!--    <artifactId>proj4j</artifactId>-->
             <!--    <version>0.1.1</version>-->
         </dependency>
+
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots</artifactId>
+            <version>3.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.20</version>
+        </dependency>
+
     </dependencies>
 
 

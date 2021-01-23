@@ -5,10 +5,10 @@ package Helper;
 
 // Структура для хранения распаршенного файла, для дальнейшего добавления в MySQL
 public class SystemParam {
-    String params;
-    String sk;
-    String type;
-    Integer zone;
+    public String params;
+    public String sk;
+    public String type;
+    public Integer zone;
 
     public SystemParam(String params, String sk, String type, Integer zone) {
         this.params = params;

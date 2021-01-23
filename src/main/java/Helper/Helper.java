@@ -13,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Helper {
-    LinkedList<SystemParam> params;
+    private LinkedList<SystemParam> params;
 
     public Helper() {
         params = new LinkedList<SystemParam>();
@@ -27,12 +27,12 @@ public class Helper {
                 if (!line.isEmpty()) {
                     SystemParam sp = parseLine(line);
                     if (sp != null) {
-                        System.out.println(sp);
+                        //System.out.println(sp);
                         params.add(sp);
                     }
                 }
                 else {
-                    System.out.println(params.size());
+                    //System.out.println(params.size());
                     break;
                 }
             }

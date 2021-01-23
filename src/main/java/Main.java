@@ -1,6 +1,10 @@
 import Helper.Helper;
+import bot.dao.DAO;
+import bot.dao.DownloadDAO;
 
 import java.io.File;
+import java.io.IOException;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -15,10 +19,19 @@ public class Main {
 
 
         //Test parsing
-        File file = new File("./projections.txt");
-        Helper help = new Helper();
-        help.read(file);
+//        File file = new File("./projections.txt");
+//        Helper help = new Helper();
+//        help.read(file);
 
-
+        DAO dao = new DownloadDAO();
+        dao.register();
+        try {
+            dao.startConnection();
+            dao.startDownload();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 }
