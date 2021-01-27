@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class SelectDAO extends DAO{
     private ArrayList<String> types;
     private ArrayList<String> sk;
-    private ArrayList<Integer> zones;
+    private ArrayList<String> zones;
 
     private String param;   //итоговая строка которую ищем
 
@@ -23,7 +23,7 @@ public class SelectDAO extends DAO{
     public SelectDAO() {
         types = new ArrayList<String>();
         sk = new ArrayList<String>();
-        zones = new ArrayList<Integer>();
+        zones = new ArrayList<String>();
     }
 
     @Override
@@ -59,7 +59,7 @@ public class SelectDAO extends DAO{
         ResultSet rs = ps.executeQuery();
         while (rs.next())
         {
-            Integer next = rs.getInt(1);
+            String next = rs.getString(1);
             if (!zones.contains(next))
                 zones.add(next);
         }
@@ -79,5 +79,17 @@ public class SelectDAO extends DAO{
 
     public String getParam() {
         return param;
+    }
+
+    public ArrayList<String> getTypes() {
+        return types;
+    }
+
+    public ArrayList<String> getSk() {
+        return sk;
+    }
+
+    public ArrayList<String> getZones() {
+        return zones;
     }
 }

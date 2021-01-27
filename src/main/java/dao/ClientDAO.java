@@ -81,13 +81,13 @@ public class ClientDAO extends DAO
         closePrepareStatement(ps);
     }
 
-    public long  getClientState() throws SQLException
+    public int  getClientState() throws SQLException
     {
         PreparedStatement ps = connection.prepareStatement(GETSTATE);
         ps.setLong(1, clientId);
         ResultSet rs = ps.executeQuery();
         rs.next();
-        return rs.getLong(1);
+        return rs.getInt(1);
     }
 
     public void  getData() throws SQLException

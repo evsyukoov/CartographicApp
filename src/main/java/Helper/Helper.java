@@ -64,30 +64,32 @@ public class Helper {
             if (check1(line))
             {
                 String sk = line.substring(line.indexOf('-') + 1, line.indexOf(" "));
-                return new SystemParam(params, sk, "MSK", 1);
+                return new SystemParam(params, sk + " Красноярский край", "MSK", "Зона 1");
             }
             int zonePos = line.indexOf(" ");
             int position = line.indexOf('-');
             String sk = line.substring(position + 1, zonePos);
             String zone = line.substring(zonePos + 1, zonePos + 7);
-            int z;
-            z = Integer.parseInt(zone.split("\\s+")[1]);
-            return (new SystemParam(params, sk,"MSK", z));
+            String reg = line.substring(zonePos + 8).trim();
+            if (reg.startsWith("("))
+                reg = reg.substring(reg.indexOf(")") + 1).trim();
+            String z = zone.split("\\s+")[1];
+            return (new SystemParam(params, sk + " " + reg,"MSK", "Зона " + z));
 
         }
         else if (line.startsWith("Московская"))
         {
-            return (new SystemParam(params,"Moscow","MGGT", 1));
+            return (new SystemParam(params,"Moscow","MGGT", "Зона 1"));
         }
         else if (line.startsWith("СК-1963"))
         {
             String[] spl = line.split(" "); //СК-1963 район А зона 3
-            return new SystemParam(params, spl[2], "SK-63", Integer.parseInt(spl[4]));
+            return new SystemParam(params, "Район " + spl[2], "SK-63", "Зона " + spl[4]);
         }
         else if (line.startsWith("Пулково 1942"))
         {
             String[] spl = line.split(" "); // Пулково 1942 зона 2 ГОСТ 2008
-            return new SystemParam(params, "None", "SK-42", Integer.parseInt(spl[3]));
+            return new SystemParam(params, "None", "SK-42", "Зона " + spl[3]);
         }
         return null;
     }
@@ -101,7 +103,7 @@ public class Helper {
         String res = "";
         for(int i = 0; i < params.size(); i++)
             if (params.get(i) != null)
-                res += params.get(i);
+                res += params.get(i) + "\n";
         return (res);
     }
 }

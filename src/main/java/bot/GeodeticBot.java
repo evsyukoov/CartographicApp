@@ -22,7 +22,7 @@ import java.sql.SQLException;
 public class GeodeticBot extends TelegramLongPollingBot {
 
     public static DAO dao;
-    final String token = "1555019728:AAH3SgshB-qQR4SoW0TwkUWsfwAq-QArlKU";
+    final String token = "";
 
     public int uploadFile(Update update)
     {
@@ -32,6 +32,7 @@ public class GeodeticBot extends TelegramLongPollingBot {
                     + token + "/getFile?file_id=" + doc.getFileId());
             BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
             String res = in.readLine();
+            System.out.println(res);
             JSONObject jresult = new JSONObject(res);
             JSONObject path = jresult.getJSONObject("result");
             String file_path = path.getString("file_path");
@@ -59,19 +60,30 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.getMessage() != null && update.getMessage().getDocument() != null)
+        BotState bs;
+        int state;
+        if (update.getMessage() != null &&
+                (update.getMessage().getDocument() != null || !update.getMessage().getText().isEmpty()))
         {
             long id = update.getMessage().getChat().getId();
-            long state = 0;
             try {
                 ClientDAO clientBD = new ClientDAO(id);
-                if (!clientBD.addNewClient())
+                BotContext botContext = new BotContext(this, update.getMessage(), token);
+                //первый заход клиента в бот
+                if (!clientBD.addNewClient()) {
                     System.out.println("Hello new");
-                else {
+                    bs = BotState.getStatement(0);
+                    bs.writeToClient(botContext);
+                    clientBD.setState(1);
+                }
+                //остальные
+                else
+                {
                     state = clientBD.getClientState();
-                    BotContext botContext = new BotContext(this, update.getMessage());
-                    if (uploadFile(update) != 1)
-                        System.out.println("error hz");
+                    bs = BotState.getStatement(state);
+                    bs.readFromClient(botContext);
+                    bs = bs.next(botContext);
+                    bs.writeToClient(botContext);
                 }
             } catch (Exception throwables) {
                 throwables.printStackTrace();

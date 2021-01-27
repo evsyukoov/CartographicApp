@@ -8,9 +8,9 @@ public class SystemParam {
     public String params;
     public String sk;
     public String type;
-    public Integer zone;
+    public String zone;
 
-    public SystemParam(String params, String sk, String type, Integer zone) {
+    public SystemParam(String params, String sk, String type, String zone) {
         this.params = params;
         this.type = type;
         this.zone = zone;
@@ -19,6 +19,6 @@ public class SystemParam {
 
     @Override
     public String toString() {
-        return String.format("%s %s %d", sk,  type, zone);
+        return String.format("%s %s %s", sk,  type, zone);
     }
 }

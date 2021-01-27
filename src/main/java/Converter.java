@@ -7,24 +7,27 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Converter {
-    private final File file;
+    private  File input;
+    private File output;
+    private long    id;
     private List<Point> convertedPoints;
     Transformator transformator;
 
-    public Converter(File file, Transformator transformator) {
-        this.file = file;
+    public Converter(File file, Transformator transformator, long id) {
+        this.input = file;
+        this.id = id;
         convertedPoints = new ArrayList<Point>();
         this.transformator = transformator;
     }
 
-    public int readFile() {
+    private int readFile() {
         if (transformator.initTransformation() == 0) {
             //Log.debug("Bad transformation parametrs");
             return (0);
         }
         BufferedReader fr = null;
         try {
-            fr = new BufferedReader(new FileReader(file));
+            fr = new BufferedReader(new FileReader(input));
         } catch (FileNotFoundException e) {
             //Log.debug(e);
             return (0);
@@ -38,7 +41,7 @@ public class Converter {
                 if ((point = parseLine(line)) != null) {
                     Point result = transformator.transformOnePoint(point);
                     if (result == null)
-                        return (0);
+                        return (-1);
                     convertedPoints.add(result);
                 }
                 else
@@ -50,6 +53,18 @@ public class Converter {
         }
         return (1);
     }
+
+    public int    convert() throws IOException {
+        if (readFile() == -1)
+            return (-1);
+        output = new File("./output/" + id);
+        FileWriter fw = new FileWriter(output);
+        for (Point p : convertedPoints) {
+            fw.write(String.format("%s, %f, %f, %f", p.name, p.x, p.y, p.h));
+        }
+        return (1);
+    }
+
 
     private Point     parseLine(String line)
     {
@@ -73,6 +88,10 @@ public class Converter {
             return null;
         }
         return (new Point(splitted[0], x, y, h));
+    }
+
+    public File getOutput() {
+        return output;
     }
 
     @Override

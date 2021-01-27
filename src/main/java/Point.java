@@ -1,8 +1,8 @@
 public class Point {
-    String  name;
-    double  x;
-    double  y;
-    double  h;
+    public String  name;
+    public double  x;
+    public double  y;
+    public double  h;
 
     public Point(String name, double x, double y, double h) {
         this.name = name;
