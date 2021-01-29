@@ -1,5 +1,7 @@
 package bot;
 
+import convert.Converter;
+import convert.Transformator;
 import dao.ClientDAO;
 import dao.SelectDAO;
 import org.json.JSONObject;
@@ -24,21 +26,21 @@ import java.util.List;
 public enum BotState {
     //0
     WELCOME {
-        private static final String HELLO = "Что умеет этот бот?\nОтправьте ему csv в формате: \n" +
+        private static final String HELLO = "Что умеет этот бот?\nОтправьте ему csv или строчку в формате: \n" +
                 "Имя точки, X, Y, Z(опционально)\n" +
                 "Выберите систему координат и зону из предложенных\n" +
                 "В ответ получите kml файл\n" +
                 "Пример форматирования: Rp12, 123111.23, 456343.79";
 
         @Override
-        public int writeToClient(BotContext botContext) {
+        public int writeToClient(BotContext botContext, Client client) {
             if (sendMessage(botContext, HELLO) == 0)
                 return (0);
             return (1);
         }
 
         @Override
-        public int readFromClient(BotContext botContext) {
+        public int readFromClient(BotContext botContext,  Client client) {
             return (1);
         }
 
@@ -49,27 +51,49 @@ public enum BotState {
     },
     //1
     FILE {
+        private Boolean isFileFormattedWell;
+
         @Override
-        public int writeToClient(BotContext botContext) {
+        public int writeToClient(BotContext botContext, Client client)
+        {
+            sendMessage(botContext, "Отправьте файл или строчку с координатами");
             return (1);
         }
 
         @Override
-        public int readFromClient(BotContext botContext) {
-            if (uploadFile(botContext) == 0)
+        public int readFromClient(BotContext botContext, Client client) {
+            isFileFormattedWell = true;
+            String text;
+            //получили от клиента строку
+            if ((text = botContext.getMessage().getText()) != null)
+            {
+                Converter c = new Converter(text);
+                if (c.readLine() == 0) {
+                    isFileFormattedWell = false;
+                    return (0);
+                }
+                client.setPointsFromFile(c.getReadedPoints());
+                client.setState(2);
+                return (1);
+            }
+            //получили от клиента файл
+            if (botContext.getMessage().getDocument() != null && uploadFile(botContext, client) == 0)
                 return (0);
-            try {
-                new ClientDAO(botContext.getMessage().getChat().getId()).setState(2);
-            } catch (SQLException e) {
-                e.printStackTrace();
+            Converter c = new Converter(new File(client.getUploadPath()));
+            if (c.readFile() == 0) {
+                isFileFormattedWell = false;
                 return (0);
             }
+            client.setPointsFromFile(c.getReadedPoints());
+            client.setState(2);
             return (1);
         }
 
         @Override
         public BotState next(BotContext botContext) {
-            return CHOOSE_TYPE;
+            if (isFileFormattedWell)
+                return CHOOSE_TYPE;
+            return ERROR_PARSING;
         }
     },
     //2
@@ -78,7 +102,7 @@ public enum BotState {
         private ArrayList<String> availableTypes;
 
         @Override
-        public int writeToClient(BotContext botContext) {
+        public int writeToClient(BotContext botContext, Client client) {
             try {
                 SelectDAO sd = new SelectDAO();
                 sd.selectTypes();
@@ -88,8 +112,7 @@ public enum BotState {
                 setButtons(sm, availableTypes);
                 if (sendMessage(botContext, sm) == 0)
                     return (0);
-                ClientDAO clientBD = new ClientDAO(botContext.getMessage().getChat().getId());
-                clientBD.setState(2);
+                client.setState(2);
             }
             catch (SQLException e)
             {
@@ -100,23 +123,14 @@ public enum BotState {
         }
 
         @Override
-        public int readFromClient(BotContext botContext) {
-            try {
-                String recieve = botContext.getMessage().getText();
-                if (!availableTypes.contains(recieve))
-                    isRightAnswer = false;
-                else
-                {
-                    isRightAnswer = true;
-                    ClientDAO clientBD = new ClientDAO(botContext.getMessage().getChat().getId());
-                    clientBD.setState(3);
-                    clientBD.setType(recieve);
-                }
-            }
-            catch (SQLException e)
-            {
-                e.printStackTrace();
-                return (0);
+        public int readFromClient(BotContext botContext, Client client) {
+            String recieve = botContext.getMessage().getText();
+            if (!availableTypes.contains(recieve))
+                isRightAnswer = false;
+            else {
+                isRightAnswer = true;
+                client.setState(3);
+                client.setChoosedType(recieve);
             }
             return (1);
         }
@@ -134,19 +148,17 @@ public enum BotState {
         private ArrayList<String> availableSK;
 
         @Override
-        public int writeToClient(BotContext botContext) {
+        public int writeToClient(BotContext botContext, Client client) {
             try {
                 SelectDAO sd = new SelectDAO();
-                ClientDAO clientBD = new ClientDAO(botContext.getMessage().getChat().getId());
-                clientBD.getData();
-                sd.selectSK(clientBD.getChoosedType());
+                sd.selectSK(client.getChoosedType());
                 availableSK = sd.getSk();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите регион(район)");
                 setButtons(sm, availableSK);
                 if (sendMessage(botContext, sm) == 0)
                     return (0);
-                clientBD.setState(3);
+                client.setState(3);
             }
             catch (SQLException e)
             {
@@ -157,23 +169,14 @@ public enum BotState {
         }
 
         @Override
-        public int readFromClient(BotContext botContext) {
-            ClientDAO clientBD = new ClientDAO(botContext.getMessage().getChat().getId());
-            try {
-                String recieve = botContext.getMessage().getText();
-                if (!availableSK.contains(recieve))
-                    isRightAnswer = false;
-                else
-                {
-                    isRightAnswer = true;
-                    clientBD.setSK(recieve);
-                    clientBD.setState(4);
-                }
-            }
-            catch (SQLException e)
-            {
-                e.printStackTrace();
-                return (0);
+        public int readFromClient(BotContext botContext, Client client) {
+            String recieve = botContext.getMessage().getText();
+            if (!availableSK.contains(recieve))
+                isRightAnswer = false;
+            else {
+                isRightAnswer = true;
+                client.setChoosedSK(recieve);
+                client.setState(4);
             }
             return (1);
         }
@@ -190,17 +193,17 @@ public enum BotState {
     {
         ArrayList<String> availableZones;
         private Boolean isRightAnswer;
+        private Boolean badTransform;
+
         @Override
-        public int writeToClient(BotContext botContext) {
+        public int writeToClient(BotContext botContext, Client client) {
             try {
                 SelectDAO sd = new SelectDAO();
-                ClientDAO clientBD = new ClientDAO(botContext.getMessage().getChat().getId());
-                clientBD.getData();
-                sd.selectZone(clientBD.getChoosedSK());
+                sd.selectZone(client.getChoosedSK());
                 availableZones = sd.getZones();
-                for (String s : availableZones) {
-                    System.out.println(s);
-                }
+//                for (String s : availableZones) {
+//                    System.out.println(s);
+//                }
 
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите зону");
@@ -217,19 +220,26 @@ public enum BotState {
         }
 
         @Override
-        public int readFromClient(BotContext botContext) {
-            SelectDAO sd = new SelectDAO();
-            ClientDAO clientBD = new ClientDAO(botContext.getMessage().getChat().getId());
+        public int readFromClient(BotContext botContext, Client client) {
             try {
+                SelectDAO sd = new SelectDAO();
                 String recieve = botContext.getMessage().getText();
                 if (!availableZones.contains(recieve))
                     isRightAnswer = false;
-                else
-                {
+                else {
                     isRightAnswer = true;
-                    //собственно обработка отправленного файла на основе присланной информации
-
-                    clientBD.setState(1);
+                    sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
+                    File file;
+                    Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile());
+                    if (transformator.transform() == 0)
+                        sendMessage(botContext, "Ошибка транформации");
+                    else if((file = transformator.transformToKML()) == null)
+                        sendMessage(botContext, "Ошибка трансформации");
+                    else {
+                        sendMessage(botContext, transformator.getOutput());
+                        sendFile(botContext, file);
+                    }
+                    client.setClientReady(true);
                 }
             }
             catch (SQLException e)
@@ -251,7 +261,7 @@ public enum BotState {
     ERROR_INPUT
             {
                 @Override
-                public int writeToClient(BotContext botContext) {
+                public int writeToClient(BotContext botContext, Client client) {
                     SendMessage sm = new SendMessage();
                     sm.setText("Неверный выбор");
                     sendMessage(botContext, sm);
@@ -259,7 +269,49 @@ public enum BotState {
                 }
 
                 @Override
-                public int readFromClient(BotContext botContext) {
+                public int readFromClient(BotContext botContext, Client client) {
+                    return (1);
+                }
+
+                @Override
+                public BotState next(BotContext botContext) {
+                    return null;
+                }
+            },
+
+    //6
+    ERROR_PARSING
+    {
+        @Override
+        public int writeToClient(BotContext botContext, Client client) {
+        SendMessage sm = new SendMessage();
+        sm.setText("Ошибка парсинга файла");
+        sendMessage(botContext, sm);
+        return (1);
+        }
+
+        @Override
+        public int readFromClient(BotContext botContext, Client client) {
+        return (1);
+        }
+
+        @Override
+        public BotState next(BotContext botContext) {
+        return null;
+        }
+    },
+    ERROR_TRANSFORMATION
+            {
+                @Override
+                public int writeToClient(BotContext botContext, Client client) {
+                    SendMessage sm = new SendMessage();
+                    sm.setText("Ошибка трансформации");
+                    sendMessage(botContext, sm);
+                    return (1);
+                }
+
+                @Override
+                public int readFromClient(BotContext botContext, Client client) {
                     return (1);
                 }
 
@@ -280,20 +332,20 @@ public enum BotState {
 
     private String uploadFile;
 
-    public abstract int writeToClient(BotContext botContext);
+    public abstract int writeToClient(BotContext botContext, Client client);
 
-    public abstract int readFromClient(BotContext botContext);
+    public abstract int readFromClient(BotContext botContext, Client client);
 
     public abstract BotState next(BotContext botContext);
 
 
-    private void sendFile(BotContext botContext, File file) {
+    public void sendFile(BotContext botContext, File file) {
         SendMessage sendMessage = new SendMessage();
-        SendDocument sendDocument = new SendDocument();
-        sendDocument.setNewDocument(file);
-        sendMessage.setChatId(botContext.getMessage().getChat().getId());
+        SendDocument doc = new SendDocument();
+        doc.setNewDocument(file);
+        doc.setChatId(botContext.getMessage().getChat().getId());
         try {
-            botContext.getBot().execute(sendMessage);
+            botContext.getBot().sendDocument(doc);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -324,7 +376,7 @@ public enum BotState {
         return (1);
     }
 
-    public int uploadFile(BotContext botContext) {
+    public int uploadFile(BotContext botContext, Client client) {
         Document doc = botContext.getMessage().getDocument();
         uploadFile = "./resources/uploaded/file_" + botContext.getMessage().getChat().getId().toString();
         try {
@@ -337,7 +389,7 @@ public enum BotState {
             JSONObject path = jresult.getJSONObject("result");
             String file_path = path.getString("file_path");
             URL downoload = new URL("https://api.telegram.org/file/bot" + botContext.getToken() + "/" + file_path);
-            FileOutputStream fos = new FileOutputStream(uploadFile);
+            FileOutputStream fos = new FileOutputStream(client.getUploadPath());
             System.out.println("Start upload");
             ReadableByteChannel rbc = Channels.newChannel(downoload.openStream());
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);

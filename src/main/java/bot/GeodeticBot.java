@@ -18,50 +18,29 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.sql.SQLException;
+import java.util.LinkedList;
 
 public class GeodeticBot extends TelegramLongPollingBot {
 
     public static DAO dao;
     final String token = "";
 
-    public int uploadFile(Update update)
+    public static LinkedList<Client> clients;
+
+    public Client   getClientFromId(long id)
     {
-        Document doc = update.getMessage().getDocument();
-        try {
-            URL url = new URL("https://api.telegram.org/bot"
-                    + token + "/getFile?file_id=" + doc.getFileId());
-            BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-            String res = in.readLine();
-            System.out.println(res);
-            JSONObject jresult = new JSONObject(res);
-            JSONObject path = jresult.getJSONObject("result");
-            String file_path = path.getString("file_path");
-            URL downoload = new URL("https://api.telegram.org/file/bot" + token + "/" + file_path);
-            FileOutputStream fos = new FileOutputStream("./tmp");
-            System.out.println("Start upload");
-            ReadableByteChannel rbc = Channels.newChannel(downoload.openStream());
-            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-            fos.close();
-            rbc.close();
-            System.out.println("Uploaded!");
+        for (Client c : clients) {
+            if (id == c.getId())
+                return (c);
         }
-        catch (MalformedURLException e)
-        {
-            System.out.println("URL error");
-            return (0);
-        }
-        catch (IOException e)
-        {
-            System.out.println("openStream error");
-            return (0);
-        }
-        return (1);
+        return null;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
         BotState bs;
-        int state;
+        Boolean isInBD;
+        Client client;
         if (update.getMessage() != null &&
                 (update.getMessage().getDocument() != null || !update.getMessage().getText().isEmpty()))
         {
@@ -70,20 +49,35 @@ public class GeodeticBot extends TelegramLongPollingBot {
                 ClientDAO clientBD = new ClientDAO(id);
                 BotContext botContext = new BotContext(this, update.getMessage(), token);
                 //первый заход клиента в бот
-                if (!clientBD.addNewClient()) {
-                    System.out.println("Hello new");
+                if (!(isInBD = clientBD.addNewClient())) {
+                    client = new Client(id);
+                    clients.add(client);
                     bs = BotState.getStatement(0);
-                    bs.writeToClient(botContext);
-                    clientBD.setState(1);
+                    bs.writeToClient(botContext, client);
+                    client.setState(1);
                 }
+                //для отладки
                 //остальные
                 else
                 {
-                    state = clientBD.getClientState();
-                    bs = BotState.getStatement(state);
-                    bs.readFromClient(botContext);
+                    //клиент будет удвлен из списка при прохождении полного круга вопрос-ответ
+                    //чтобы не забивать оперативку, поэтому создаем заново
+                    if ((client = getClientFromId(id)) == null)
+                    {
+                        client = new Client(id);
+                        clients.add(client);
+                        client.setState(1);
+                    }
+                    System.out.printf("Client state: %d", client.getState());
+                    bs = BotState.getStatement(client.getState());
+                    bs.readFromClient(botContext, client);
                     bs = bs.next(botContext);
-                    bs.writeToClient(botContext);
+                    bs.writeToClient(botContext, client);
+                    if (client.getClientReady())
+                    {
+                        clients.remove(client);
+                        System.out.println("Client delete!");
+                    }
                 }
             } catch (Exception throwables) {
                 throwables.printStackTrace();
@@ -105,6 +99,7 @@ public class GeodeticBot extends TelegramLongPollingBot {
     public static void main(String[] args) {
         ApiContextInitializer.init();
         dao = new DAO();
+        clients = new LinkedList<Client>();
         dao.register();
         try {
             dao.startConnection();

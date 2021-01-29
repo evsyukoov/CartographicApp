@@ -1,3 +1,5 @@
+package convert;
+
 public class Point {
     public String  name;
     public double  x;

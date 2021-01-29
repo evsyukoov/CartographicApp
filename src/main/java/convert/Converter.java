@@ -1,30 +1,43 @@
-//import com.oracle.tools.packager.Log;
-import org.osgeo.proj4j.ProjCoordinate;
+package convert;//import com.oracle.tools.packager.Log;
 //import jdk.internal.org.jline.utils.Log;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.LinkedList;
+        import java.util.LinkedList;
 import java.util.List;
 
 public class Converter {
     private  File input;
     private File output;
     private long    id;
+    String text;
     private List<Point> convertedPoints;
+    private LinkedList<Point> readedPoints;
     Transformator transformator;
 
-    public Converter(File file, Transformator transformator, long id) {
+    public Converter(File file) {
         this.input = file;
-        this.id = id;
-        convertedPoints = new ArrayList<Point>();
-        this.transformator = transformator;
+        this.readedPoints = new LinkedList<Point>();
     }
 
-    private int readFile() {
-        if (transformator.initTransformation() == 0) {
-            //Log.debug("Bad transformation parametrs");
-            return (0);
+    public Converter(String text) {
+        this.text = text;
+        this.readedPoints = new LinkedList<Point>();
+    }
+
+    public int readLine()
+    {
+        Point point;
+        if ((point = parseLine(text)) != null)
+        {
+            readedPoints.add(point);
+            return (1);
         }
+        return (0);
+    }
+
+    public int readFile() {
+//        if (transformator.initTransformation() == 0) {
+//            return (0);
+//        }
         BufferedReader fr = null;
         try {
             fr = new BufferedReader(new FileReader(input));
@@ -39,10 +52,7 @@ public class Converter {
                 if (line.isEmpty())
                     continue;
                 if ((point = parseLine(line)) != null) {
-                    Point result = transformator.transformOnePoint(point);
-                    if (result == null)
-                        return (-1);
-                    convertedPoints.add(result);
+                    readedPoints.add(point);
                 }
                 else
                     return (0);
@@ -66,13 +76,14 @@ public class Converter {
     }
 
 
+
     private Point     parseLine(String line)
     {
         String[] splitted = line.split("\\s*,\\s*");
-        double h = -10000;
+        double h = 0;
         double x;
         double y;
-        if (splitted.length > 4)
+        if (splitted.length > 4 || splitted.length < 3)
             return null;
         try {
             x = Double.parseDouble(splitted[1]);
@@ -101,6 +112,10 @@ public class Converter {
             res += String.format("%s:%f:%f:%f\n", point.name, point.x, point.y, point.h);
         }
         return (res);
+    }
+
+    public LinkedList<Point> getReadedPoints() {
+        return readedPoints;
     }
 }
 

@@ -66,11 +66,11 @@ public class SelectDAO extends DAO{
         closePrepareStatement(ps);
     }
 
-    public void selectParam(String type, String sk, Integer zone) throws SQLException {
+    public void selectParam(String type, String sk, String zone) throws SQLException {
         PreparedStatement ps = connection.prepareStatement(PARAM);
         ps.setString(1, type);
         ps.setString(2, sk);
-        ps.setInt(3, zone);
+        ps.setString(3, zone);
         ResultSet rs  = ps.executeQuery();
         rs.next();
         param = rs.getString(1);
