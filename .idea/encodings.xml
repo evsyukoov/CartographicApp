@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/src/main/resources/send/239260353.gpx" charset="ISO-8859-1" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/send/349939502.csv" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/uploaded/file_239260353" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/uploaded/file_311027007" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/uploaded/file_349939502" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/test/TST2.csv" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/test/file (2).csv" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/test/file.csv" charset="windows-1251" />
+    <file url="file://$PROJECT_DIR$/src/test/test" charset="UTF-8" />
+  </component>
+</project>

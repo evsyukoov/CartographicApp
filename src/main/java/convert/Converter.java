@@ -35,20 +35,17 @@ public class Converter {
     }
 
     public int readFile() {
-//        if (transformator.initTransformation() == 0) {
-//            return (0);
-//        }
         BufferedReader fr = null;
         try {
             fr = new BufferedReader(new FileReader(input));
         } catch (FileNotFoundException e) {
-            //Log.debug(e);
             return (0);
         }
         String line;
         try {
             while ((line = fr.readLine()) != null) {
                 Point point;
+                System.out.println(line);
                 if (line.isEmpty())
                     continue;
                 if ((point = parseLine(line)) != null) {
@@ -57,8 +54,7 @@ public class Converter {
                 else
                     return (0);
             }
-        } catch (IOException e) {
-            //Log.debug(e);
+        } catch (IOException e) { ;
             return (0);
         }
         return (1);
@@ -95,7 +91,6 @@ public class Converter {
         }
         catch (NumberFormatException e)
         {
-            //Log.debug(e);
             return null;
         }
         return (new Point(splitted[0], x, y, h));

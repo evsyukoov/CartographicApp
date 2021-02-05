@@ -3,6 +3,7 @@ package bot;
 
 import convert.Point;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -11,13 +12,29 @@ public class Client {
 
     private  String uploadPath;
 
+    private String savePath;
+
     private String choosedSK;
 
     private String choosedType;
 
     private String choosedZone;
 
+    private ArrayList<File> files;
+
     private long id;
+
+    public ArrayList<File> getFiles() {
+        return files;
+    }
+
+    public String getSavePath() {
+        return savePath;
+    }
+
+    public void setFiles(ArrayList<File> files) {
+        this.files = files;
+    }
 
     private int         state;
 
@@ -27,6 +44,7 @@ public class Client {
         this.id = id;
         uploadPath = "./resources/uploaded/" + "file_" + id;
         isClientReady = false;
+        savePath = "./resources/send/" + id;
     }
 
     public void setPointsFromFile(LinkedList<Point> pointsFromFile) {
