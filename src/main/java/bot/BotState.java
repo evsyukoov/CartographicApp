@@ -1,5 +1,7 @@
 package bot;
 
+import com.ibm.icu.text.CharsetDetector;
+import com.ibm.icu.text.CharsetMatch;
 import convert.Converter;
 import convert.Transformator;
 import dao.ClientDAO;
@@ -20,6 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,11 +31,7 @@ import java.util.List;
 public enum BotState {
     //0
     WELCOME {
-        private static final String HELLO = "Что умеет этот бот?\nОтправьте ему csv или строчку в формате: \n" +
-                "Имя точки, X, Y, Z(опционально)\n" +
-                "Выберите систему координат и зону из предложенных\n" +
-                "В ответ получите kml файл\n" +
-                "Пример форматирования: Rp12, 123111.23, 456343.79";
+        private static final String HELLO = "Отправьте файл или строчку с координатами";
 
         @Override
         public int writeToClient(BotContext botContext, Client client) {
@@ -53,22 +52,21 @@ public enum BotState {
     },
     //1
     FILE {
-        private Boolean isFileFormattedWell;
         private Boolean isStopped;
-        private Boolean isServerError;
-        private Boolean isWrongExtension;
+
+        private Boolean error;
 
         @Override
         public int writeToClient(BotContext botContext, Client client)
         {
-            sendMessage(botContext, "Отправьте файл или строчку с координатами");
+            deleteButtons(botContext);
+            //sendMessage(botContext, "Отправьте файл или строчку с координатами");
             return (1);
         }
 
         @Override
         public int readFromClient(BotContext botContext, Client client) {
-            isFileFormattedWell = true;
-            isServerError = false;
+            error = false;
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             String text;
@@ -77,7 +75,8 @@ public enum BotState {
             {
                 Converter c = new Converter(text);
                 if (c.readLine() == 0) {
-                    isFileFormattedWell = false;
+                    error = true;
+                    client.setErrorMSG("Неверный формат текста\nОтправьте файл или строчку с координатами");
                     return (0);
                 }
                 client.setPointsFromFile(c.getReadedPoints());
@@ -88,17 +87,21 @@ public enum BotState {
             }
             //получили от клиента файл
             if (botContext.getMessage().getDocument() != null && uploadFile(botContext, client) == 0) {
-                isServerError = true;
+                error = true;
+                client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
+                client.setState(1);
                 return (0);
             }
             Converter c = new Converter(new File(client.getUploadPath()), client.getId(), client.getExtension());
             int ret = c.run();
             if (ret == 0) {
-                isFileFormattedWell = false;
+                client.setErrorMSG("Неверный формат файла\nОтправьте файл или строчку с координатами");
+                error = true;
                 return (0);
             }
             else if (ret == -1) {
-                isServerError = true;
+                error = true;
+                client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
                 return (0);
             }
             client.setPointsFromFile(c.getReadedPoints());
@@ -110,13 +113,11 @@ public enum BotState {
 
         @Override
         public BotState next(BotContext botContext) {
-            if (isServerError)
-                return SERVER_ERROR;
+            if (error)
+                return ERROR;
             if (isStopped)
-                return WELCOME;
-            if (isFileFormattedWell)
-                return CHOOSE_TYPE;
-            return ERROR_PARSING;
+                return FILE;
+            return CHOOSE_TYPE;
         }
     },
     //2
@@ -150,12 +151,14 @@ public enum BotState {
         @Override
         public int readFromClient(BotContext botContext, Client client) {
             skip = false;
-            isRightAnswer = false;
+            isRightAnswer = true;
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             String recieve = botContext.getMessage().getText();
-            if (recieve == null || !availableTypes.contains(recieve))
+            if (recieve == null || !availableTypes.contains(recieve)) {
                 isRightAnswer = false;
+                client.setErrorMSG("Неверно выбран тип СК\nВыберите тип СК");
+            }
             else {
                 if (recieve.equals("SK-42")) {
                     skip = true;
@@ -174,12 +177,12 @@ public enum BotState {
         @Override
         public BotState next(BotContext botContext) {
             if (isStopped)
-                return WELCOME;
+                return FILE;
             if (isRightAnswer)
                 return CHOOSE_SK;
             if (skip)
                 return CHOOSE_ZONE;
-            return ERROR_INPUT;
+            return ERROR;
         }
     },
     //3
@@ -214,8 +217,10 @@ public enum BotState {
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             String recieve = botContext.getMessage().getText();
-            if (recieve == null || !availableSK.contains(recieve))
+            if (recieve == null || !availableSK.contains(recieve)) {
                 isRightAnswer = false;
+                client.setErrorMSG("Неверно выбран регион(район)\nВыберите регион(район)");
+            }
             else {
                 isRightAnswer = true;
                 client.setChoosedSK(recieve);
@@ -227,10 +232,10 @@ public enum BotState {
         @Override
         public BotState next(BotContext botContext) {
             if (isStopped)
-                return WELCOME;
+                return FILE;
             if (isRightAnswer)
                 return CHOOSE_ZONE;
-            return ERROR_INPUT;
+            return ERROR;
         }
     },
     //4
@@ -275,12 +280,15 @@ public enum BotState {
                     sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
                     Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
                     if (transformator.transform() == 0) {
-                        sendMessage(botContext, "Ошибка транcформации");
+                        client.setErrorMSG("Ошибка трансформации");
                         badTransform = true;
                         client.setState(1);
                     }
                           client.setFiles(transformator.getFiles());
                 }
+                 else  {
+                     client.setErrorMSG("Неверно выбрана зона\nВыберите зону");
+                 }
             }
             catch (SQLException e)
             {
@@ -294,24 +302,22 @@ public enum BotState {
         @Override
         public BotState next(BotContext botContext) {
             if (isStopped)
-                return WELCOME;
+                return  FILE;
             if (badTransform)
-                return FILE;
+                return TRANSFORM_ERROR;
             if (isRightAnswer)
                 return EXECUTE;
-            return ERROR_INPUT;
+            return ERROR;
         }
     },
 
     //последний  стейт если все хорошо
     EXECUTE {
         @Override public int writeToClient(BotContext botContext, Client client) {
-            deleteButtons(botContext);
             for(int i = 0;i < client.getFiles().size(); i++)
                 sendFile(botContext, client.getFiles().get(i));
             client.setClientReady(true);
-            sendMessage(botContext, "Отправьте файл или строчку с координатами");
-            System.out.printf("FULL CIRCLE client id = %d\n", client.getId());
+            deleteButtons(botContext);
             return 0;
         }
 
@@ -327,11 +333,11 @@ public enum BotState {
         },
 
     //6
-    ERROR_INPUT {
+    ERROR {
         @Override
         public int writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
-            sm.setText("Неверный выбор");
+            sm.setText(client.getErrorMSG());
             sendMessage(botContext, sm);
             return (1);
         }
@@ -347,68 +353,27 @@ public enum BotState {
             }
         },
 
-    //7
-    ERROR_PARSING
-    {
+    TRANSFORM_ERROR {
         @Override
         public int writeToClient(BotContext botContext, Client client) {
-        SendMessage sm = new SendMessage();
-        sm.setText("Ошибка парсинга файла");
-        sendMessage(botContext, sm);
-        return (1);
+            SendMessage sm = new SendMessage();
+            sm.setText(client.getErrorMSG());
+            sendMessage(botContext, sm);
+            deleteButtons(botContext);
+            return (1);
         }
 
         @Override
         public int readFromClient(BotContext botContext, Client client) {
-        return (1);
+            return (1);
         }
 
         @Override
         public BotState next(BotContext botContext) {
-        return null;
+            return null;
         }
-    },
-    //8
-    ERROR_TRANSFORMATION
-            {
-                @Override
-                public int writeToClient(BotContext botContext, Client client) {
-                    SendMessage sm = new SendMessage();
-                    sm.setText("Ошибка трансформации");
-                    sendMessage(botContext, sm);
-                    return (1);
-                }
+    };
 
-                @Override
-                public int readFromClient(BotContext botContext, Client client) {
-                    return (1);
-                }
-
-                @Override
-                public BotState next(BotContext botContext) {
-                    return null;
-                }
-            },
-    SERVER_ERROR
-            {
-                @Override
-                public int writeToClient(BotContext botContext, Client client) {
-                    SendMessage sm = new SendMessage();
-                    sm.setText("Ошибка на сервере. Попробуйте позднее");
-                    sendMessage(botContext, sm);
-                    return (1);
-                }
-
-                @Override
-                public int readFromClient(BotContext botContext, Client client) {
-                    return (1);
-                }
-
-                @Override
-                public BotState next(BotContext botContext) {
-                    return null;
-                }
-            };
 
 
     private static BotState[] statements;
@@ -444,7 +409,7 @@ public enum BotState {
         ReplyKeyboardRemove replyKeyboardRemove = new ReplyKeyboardRemove();
         SendMessage msg = new SendMessage();
         msg.setReplyMarkup(replyKeyboardRemove);
-        msg.setText("Готово!");
+        msg.setText("Отправьте файл или строчку с координатами");
         sendMessage(botContext, msg);
     }
 
@@ -512,12 +477,16 @@ public enum BotState {
             URL downoload = new URL("https://api.telegram.org/file/bot" + botContext.getToken() + "/" + file_path);
             if (client.getExtension().equals("kmz"))
                 return (uploadZIP(downoload, client));
-            Writer fw  = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()));
-            BufferedReader uploadIn = new BufferedReader(new InputStreamReader(downoload.openStream()));
+            Writer fw  = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()), StandardCharsets.UTF_8);
+            String charset;
+            if (client.getExtension().equals("csv"))
+                charset = "windows-1251";
+            else
+                charset = "UTF-8";
+            BufferedReader uploadIn = new BufferedReader(new InputStreamReader(downoload.openStream(), charset));
             String s;
-            while ((s = uploadIn.readLine()) != null) {
-                fw.write(String.format("%s\n",s));
-            }
+            while ((s = uploadIn.readLine()) != null)
+                fw.write(String.format("%s\n",s ));
             fw.close();
             uploadIn.close();
             in.close();

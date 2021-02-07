@@ -5,15 +5,15 @@ version="1.1"
 creator="InjGeo_bot"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://www.garmin.com/xmlschemas/WaypointExtension/v1 ">
-<wpt lat="59.654137994420346" lon="112.73456353142319"><name>ф1</name><desc>ф1</desc></wpt>
-<wpt lat="59.58356847995399" lon="112.56853668899026"><name>a2</name><desc>a2</desc></wpt>
-<wpt lat="59.49135455145448" lon="112.59523632985955"><name>A3</name><desc>A3</desc></wpt>
-<wpt lat="59.52616028345159" lon="112.73094241062407"><name>a4</name><desc>a4</desc></wpt>
-<wpt lat="59.411634756702526" lon="112.96977646979414"><name>a5</name><desc>a5</desc></wpt>
-<wpt lat="59.378422346854705" lon="113.25362089627869"><name>a6</name><desc>a6</desc></wpt>
-<wpt lat="59.47255856371995" lon="113.27233536806084"><name>апа7</name><desc>апа7</desc></wpt>
-<wpt lat="59.349028557267054" lon="113.52846009529169"><name>a8</name><desc>a8</desc></wpt>
-<wpt lat="59.462774125071284" lon="113.54596198524652"><name>a9</name><desc>a9</desc></wpt>
-<wpt lat="59.49701895711365" lon="113.73134287675276"><name>a10</name><desc>a10</desc></wpt>
-<wpt lat="59.545026297606285" lon="113.75162919819381"><name>a11</name><desc>a11</desc></wpt>
+<wpt lat="55.1440390099684" lon="58.08288886561836"><name>С„1</name><desc>С„1</desc></wpt>
+<wpt lat="55.07568385085124" lon="57.93280052399423"><name>a2</name><desc>a2</desc></wpt>
+<wpt lat="54.98306037755466" lon="57.952111041166376"><name>A3</name><desc>A3</desc></wpt>
+<wpt lat="55.016048115977426" lon="58.073772361019245"><name>a4</name><desc>a4</desc></wpt>
+<wpt lat="54.898293229794156" lon="58.279879334067694"><name>a5</name><desc>a5</desc></wpt>
+<wpt lat="54.861384968759765" lon="58.529603171626334"><name>a6</name><desc>a6</desc></wpt>
+<wpt lat="54.95532435764232" lon="58.55026031099333"><name>Р°РїР°7</name><desc>Р°РїР°7</desc></wpt>
+<wpt lat="54.82850896723722" lon="58.771571804243415"><name>a8</name><desc>a8</desc></wpt>
+<wpt lat="54.94208559838482" lon="58.79187369568982"><name>a9</name><desc>a9</desc></wpt>
+<wpt lat="54.97405923344957" lon="58.95726914722025"><name>a10</name><desc>a10</desc></wpt>
+<wpt lat="55.02183862261029" lon="58.9772126121925"><name>a11</name><desc>a11</desc></wpt>
 </gpx>

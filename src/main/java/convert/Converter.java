@@ -216,7 +216,7 @@ public class Converter
             //input.delete();
             return(ret);
         }
-        else if (extension.equals("kml"))
+        else if (extension.equals("kml") || extension.equals("KML"))
         {
             transformType = 1;
             kmlDIR = "./resources/uploaded/" + id + "/";
@@ -225,7 +225,7 @@ public class Converter
             //input.delete();
             return (readFromKML(input));
         }
-        else if (extension.equals("kmz"))
+        else if (extension.equals("kmz") || extension.equals("KMZ"))
         {
             kmlDIR = "./resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)

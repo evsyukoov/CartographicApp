@@ -29,15 +29,15 @@ public class Main {
           //Archivator zipArch = new Archivator(new File("./src/main/java/convert/kmzTest.kmz"),
 //                  "./src/main/java/convert/kmz/");
           //zipArch.extractFile();
-        Convert convert = new Convert();
-        convert.setInputFile(new File("./src/main/java/convert/example.kml"));
-        convert.setInputFormat(KML.class);
-        convert.setOutputFile(new File("./src/main/java/convert/out2.csv"));
-        convert.setOutputFormat(CSV.class);
-        String msg = convert.execute();
+//        Convert convert = new Convert();
+//        convert.setInputFile(new File("./src/main/java/convert/ex"));
+//        convert.setInputFormat(KML.class);
+//        convert.setOutputFile(new File("./src/main/java/convert/out.csv"));
+//        convert.setOutputFormat(CSV.class);
+//        String msg = convert.execute();
  //successful if null returned:
-        if (msg != null)
-            System.err.println(msg);
+//        if (msg != null)
+//            System.err.println(msg);
 //        //Test Library
 
 

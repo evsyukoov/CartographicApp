@@ -4,6 +4,8 @@ package convert;//import com.sun.deploy.security.SelectableSecurityManager;
 import org.osgeo.proj4j.*;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -71,7 +73,7 @@ public class Transformator {
         File f1 = new File(outputFileName + ".csv");
         files.add(f1);
         try {
-            Writer csv = new OutputStreamWriter(new FileOutputStream(f1));
+            Writer csv = new OutputStreamWriter(new FileOutputStream(f1), "Windows-1251");
             //System.out.println(input);
             for (Point point : input)
             {
@@ -103,7 +105,7 @@ public class Transformator {
         files.add(file2);
         files.add(file3);
         try {
-            Writer csv = new OutputStreamWriter(new FileOutputStream(file1));
+            Writer csv = new OutputStreamWriter(new FileOutputStream(file1), "windows-1251");
             //FileWriter csv = new FileWriter(file1);
             Writer kml = new OutputStreamWriter(new FileOutputStream(file2));
             //FileWriter gpx = new FileWriter(file3);

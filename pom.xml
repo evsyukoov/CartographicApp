@@ -57,6 +57,15 @@
             <version>0.0.5</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.ibm.icu</groupId>
+
+            <artifactId>icu4j</artifactId>
+
+            <version>68.2</version>
+
+        </dependency>
+
     </dependencies>
 
 
