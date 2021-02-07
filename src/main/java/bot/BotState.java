@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +55,8 @@ public enum BotState {
     FILE {
         private Boolean isFileFormattedWell;
         private Boolean isStopped;
+        private Boolean isServerError;
+        private Boolean isWrongExtension;
 
         @Override
         public int writeToClient(BotContext botContext, Client client)
@@ -65,6 +68,7 @@ public enum BotState {
         @Override
         public int readFromClient(BotContext botContext, Client client) {
             isFileFormattedWell = true;
+            isServerError = false;
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             String text;
@@ -77,24 +81,37 @@ public enum BotState {
                     return (0);
                 }
                 client.setPointsFromFile(c.getReadedPoints());
+                client.setTransformType(c.getTransformType());
+                client.setExtension(".csv");
                 client.setState(2);
                 return (1);
             }
             //получили от клиента файл
-            if (botContext.getMessage().getDocument() != null && uploadFile(botContext, client) == 0)
+            if (botContext.getMessage().getDocument() != null && uploadFile(botContext, client) == 0) {
+                isServerError = true;
                 return (0);
-            Converter c = new Converter(new File(client.getUploadPath()));
-            if (c.readFile() == 0) {
+            }
+            Converter c = new Converter(new File(client.getUploadPath()), client.getId(), client.getExtension());
+            int ret = c.run();
+            if (ret == 0) {
                 isFileFormattedWell = false;
                 return (0);
             }
+            else if (ret == -1) {
+                isServerError = true;
+                return (0);
+            }
             client.setPointsFromFile(c.getReadedPoints());
+            client.setTransformType(c.getTransformType());
             client.setState(2);
+            c.print();
             return (1);
         }
 
         @Override
         public BotState next(BotContext botContext) {
+            if (isServerError)
+                return SERVER_ERROR;
             if (isStopped)
                 return WELCOME;
             if (isFileFormattedWell)
@@ -256,13 +273,13 @@ public enum BotState {
                  if (recieve == null || availableZones.contains(recieve)){
                     isRightAnswer = true;
                     sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
-                    Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath());
+                    Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
                     if (transformator.transform() == 0) {
                         sendMessage(botContext, "Ошибка транcформации");
                         badTransform = true;
                         client.setState(1);
                     }
-                    client.setFiles(transformator.getFiles());
+                          client.setFiles(transformator.getFiles());
                 }
             }
             catch (SQLException e)
@@ -371,6 +388,26 @@ public enum BotState {
                 public BotState next(BotContext botContext) {
                     return null;
                 }
+            },
+    SERVER_ERROR
+            {
+                @Override
+                public int writeToClient(BotContext botContext, Client client) {
+                    SendMessage sm = new SendMessage();
+                    sm.setText("Ошибка на сервере. Попробуйте позднее");
+                    sendMessage(botContext, sm);
+                    return (1);
+                }
+
+                @Override
+                public int readFromClient(BotContext botContext, Client client) {
+                    return (1);
+                }
+
+                @Override
+                public BotState next(BotContext botContext) {
+                    return null;
+                }
             };
 
 
@@ -449,6 +486,16 @@ public enum BotState {
         return (1);
     }
 
+    private void    findExtension(String path, Client client)
+    {
+        int pos = path.indexOf('.');
+        if (pos == -1)
+            client.setExtension(".csv");
+        else {
+            client.setExtension(path.substring(pos + 1));
+        }
+    }
+
     public int uploadFile(BotContext botContext, Client client) {
         Document doc = botContext.getMessage().getDocument();
         uploadFile = "./resources/uploaded/file_" + botContext.getMessage().getChat().getId().toString();
@@ -461,13 +508,16 @@ public enum BotState {
             JSONObject jresult = new JSONObject(res);
             JSONObject path = jresult.getJSONObject("result");
             String file_path = path.getString("file_path");
+            findExtension(file_path, client);
             URL downoload = new URL("https://api.telegram.org/file/bot" + botContext.getToken() + "/" + file_path);
-            Writer fw  = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()), "utf-8");
-            System.out.println("Start upload");
+            if (client.getExtension().equals("kmz"))
+                return (uploadZIP(downoload, client));
+            Writer fw  = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()));
             BufferedReader uploadIn = new BufferedReader(new InputStreamReader(downoload.openStream()));
             String s;
-            while ((s = uploadIn.readLine()) != null)
-                fw.write(s);
+            while ((s = uploadIn.readLine()) != null) {
+                fw.write(String.format("%s\n",s));
+            }
             fw.close();
             uploadIn.close();
             in.close();
@@ -477,6 +527,21 @@ public enum BotState {
             return (0);
         } catch (IOException e) {
             System.out.println("openStream error");
+            return (0);
+        }
+        return (1);
+    }
+
+    public int uploadZIP(URL download, Client client)
+    {
+        try {
+            ReadableByteChannel rbc = Channels.newChannel(download.openStream());
+            FileOutputStream fos = new FileOutputStream(client.getUploadPath());
+            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
             return (0);
         }
         return (1);

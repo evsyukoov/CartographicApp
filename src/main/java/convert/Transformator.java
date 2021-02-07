@@ -11,6 +11,7 @@ public class Transformator {
     private String params;
     private CoordinateTransform         transformation;
     private String outputFileName;
+    private int transformType;
 
     //точки от клиента
     private LinkedList<Point> input;
@@ -26,11 +27,12 @@ public class Transformator {
     private final static String WGS84 = "EPSG:4326";
 
 
-    public Transformator(String params, LinkedList<Point> input, String outputFileName) {
+    public Transformator(String params, LinkedList<Point> input, String outputFileName, int transformType) {
         this.outputFileName = outputFileName;
         this.params = params;
         this.input = input;
-        files = new ArrayList<File>(3);
+        this.transformType = transformType;
+        files = new ArrayList<File>();
     }
 
     private void writeHeaders(Writer fw2, Writer fw3) throws IOException
@@ -47,14 +49,49 @@ public class Transformator {
     private void    writeLine(Writer fw2, Writer fw3, Point p) throws IOException
     {
         String line = String.format("<Placemark><name>%s</name><description></description><stileUrl>#z1</stileUrl>" +
-                "<Point><coordinates>%s,%s</coordinates></Point></Placemark>\r\n", p.name, p.y, p.x);
+                "<Point><coordinates>%s,%s,%s</coordinates></Point></Placemark>\r\n", p.name, p.y, p.x, p.h);
         fw2.write(line);
         String line2 = String.format("<wpt lat=\"%s\" lon=\"%s\"><name>%s</name><desc>%s</desc></wpt>\n", p.x, p.y, p.name, p.name);
         fw3.write(line2);
     }
 
+    public int transform()
+    {
+        if (transformType == 0)
+            return (transformToWGS());
+        else
+            return (transformToLocal());
+    }
+
+    public int  transformToLocal()
+    {
+        Point p;
+        if (initTransformation() == 0)
+            return (0);
+        File f1 = new File(outputFileName + ".csv");
+        files.add(f1);
+        try {
+            Writer csv = new OutputStreamWriter(new FileOutputStream(f1));
+            //System.out.println(input);
+            for (Point point : input)
+            {
+                if ((p = transformOnePoint(point)) != null)
+                    csv.write(String.format("%s,%s,%s,%s\n", p.name, p.x, p.y, point.h));
+                else
+                    return (0);
+            }
+            csv.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return (-1);
+        }
+        return (1);
+    }
+
     //трансформируем и сразу создаем все 3 файла (csv, kml и gpx)
-    public int     transform()
+    public int     transformToWGS()
     {
         Point p;
         if (initTransformation() == 0)
@@ -89,6 +126,7 @@ public class Transformator {
         catch (IOException e)
         {
             e.printStackTrace();
+            return (-1);
         }
         return (1);
     }
@@ -100,8 +138,14 @@ public class Transformator {
         CoordinateReferenceSystem target;
 
         try {
-            src = factory.createFromParameters(null, params.substring(0, params.length() - 2));
-            target = factory.createFromName(WGS84);
+            if (transformType == 0) {
+                src = factory.createFromParameters(null, params.substring(0, params.length() - 2));
+                target = factory.createFromName(WGS84);
+            }
+            else {
+                target = factory.createFromParameters(null, params.substring(0, params.length() - 2));
+                src = factory.createFromName(WGS84);
+            }
         }
         catch (Proj4jException e)
         {

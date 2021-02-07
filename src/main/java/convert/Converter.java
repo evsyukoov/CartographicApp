@@ -1,21 +1,38 @@
 package convert;//import com.oracle.tools.packager.Log;
 //import jdk.internal.org.jline.utils.Log;
-import java.io.*;
-        import java.util.LinkedList;
-import java.util.List;
+import com.github.fracpete.gpsformats4j.Convert;
+import com.github.fracpete.gpsformats4j.formats.CSV;
+import com.github.fracpete.gpsformats4j.formats.KML;
 
-public class Converter {
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Converter
+{
+    private int transformType; //0 - из Плоской СК в WGS, 1 - из WGS
     private  File input;
     private File output;
     private long    id;
+    private String extension;
     String text;
-    private List<Point> convertedPoints;
     private LinkedList<Point> readedPoints;
     Transformator transformator;
 
-    public Converter(File file) {
+    String kmlDIR;
+
+    public Converter(File file, long id, String extension) {
         this.input = file;
+        this.id = id;
         this.readedPoints = new LinkedList<Point>();
+        this.extension = extension;
+        transformType = 0;
     }
 
     public Converter(String text) {
@@ -35,44 +52,59 @@ public class Converter {
     }
 
     public int readFile() {
-        BufferedReader fr = null;
+        BufferedReader fr;
+        int type = 0;
+        String line;
+        int j = 0;
         try {
             fr = new BufferedReader(new FileReader(input));
-        } catch (FileNotFoundException e) {
-            return (0);
-        }
-        String line;
-        try {
             while ((line = fr.readLine()) != null) {
                 Point point;
-                System.out.println(line);
                 if (line.isEmpty())
                     continue;
+                type = transformType;
                 if ((point = parseLine(line)) != null) {
+                    //если в файле встретились различные типы координат
+                    if (j != 0 && type != transformType)
+                        return (0);
                     readedPoints.add(point);
                 }
                 else
                     return (0);
+
+                j++;
             }
         } catch (IOException e) { ;
-            return (0);
-        }
-        return (1);
-    }
-
-    public int    convert() throws IOException {
-        if (readFile() == -1)
             return (-1);
-        output = new File("./output/" + id);
-        FileWriter fw = new FileWriter(output);
-        for (Point p : convertedPoints) {
-            fw.write(String.format("%s, %f, %f, %f", p.name, p.x, p.y, p.h));
         }
         return (1);
     }
 
+    //смотрим какие координаты в текстовике: WGS-84 или плоские
+    private Boolean matchWGS(String s)
+    {
+        Pattern p = Pattern.compile("^\\d{1,3}\\.?\\d*$");
+        Matcher m = p.matcher(s);
+        boolean res;
+        if ((res = m.find()))
+        {
+            if (!s.contains("."))
+            {
+                p = Pattern.compile("^\\d{1,3}$");
+                m = p.matcher(s);
+                return m.find();
+            }
+        }
+        return res;
+    }
 
+    public Boolean isWGS(String s1, String s2)
+    {
+        return matchWGS(s1) && matchWGS(s2);
 
+    }
+
+    // читаем и парсим одну строчку
     private Point     parseLine(String line)
     {
         String[] splitted = line.split("\\s*,\\s*");
@@ -82,6 +114,10 @@ public class Converter {
         if (splitted.length > 4 || splitted.length < 3)
             return null;
         try {
+            if (isWGS(splitted[1], splitted[2]))
+                transformType = 1;
+            else
+                transformType = 0;
             x = Double.parseDouble(splitted[1]);
             y = Double.parseDouble(splitted[2]);
             if (splitted.length == 4) {
@@ -100,18 +136,116 @@ public class Converter {
         return output;
     }
 
-    @Override
-    public String toString() {
-        String res = "";
-        for (Point point : convertedPoints) {
-            res += String.format("%s:%f:%f:%f\n", point.name, point.x, point.y, point.h);
-        }
-        return (res);
+    public int getTransformType() {
+        return transformType;
     }
 
     public LinkedList<Point> getReadedPoints() {
         return readedPoints;
     }
+
+    private int readFromKML(File input){
+        Convert convert = new Convert();
+        convert.setInputFile(input);
+        convert.setInputFormat(KML.class);
+        File out = new File(kmlDIR + id);
+        System.out.println(kmlDIR + id);
+        try {
+            out.createNewFile();
+        }catch (IOException e){
+            e.printStackTrace();
+            return (-1);
+        }
+        convert.setOutputFile(out);
+        convert.setOutputFormat(CSV.class);
+        String msg = convert.execute();
+        if (msg != null)
+            return (0);
+        try (BufferedReader bfr = new BufferedReader(new FileReader(out))) {
+            String line;
+            while ((line = bfr.readLine()) != null)
+            {
+                if (!line.startsWith("Track,Time,Latitude,Longitude,Elevation")) {
+                    String []arr = line.split("\\s*,\\s*");
+                    readedPoints.add(new Point(arr[0], Double.parseDouble(arr[3]), Double.parseDouble(arr[2]), Double.parseDouble(arr[4])));
+                }
+                //out.delete();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return (-1);
+        }
+        return (1);
+    }
+
+    private int     createTmpDirectory()
+    {
+        Path path = Paths.get(kmlDIR);
+        try {
+            if (Files.notExists(path))
+                Files.createDirectory(path);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return (0);
+        }
+        return (1);
+    }
+
+    private int     readFromKMZ() {
+            Archivator arch = new Archivator(input, kmlDIR);
+            if (arch.extractFile() == 0)
+                return (-1);
+            ArrayList<File> extracted = arch.getFromArchive();
+            for (File file : extracted) {
+                System.out.printf("file name: %s\n", file.getName());
+                int ret = readFromKML(file);
+                //file.delete();
+                if (ret == -1 || ret == 0)
+                    return ret;
+            }
+            return (1);
+        }
+
+    public  int run()
+    {
+        if (extension.equals("txt") || extension.equals("csv")) {
+            int ret = readFile();
+            //input.delete();
+            return(ret);
+        }
+        else if (extension.equals("kml"))
+        {
+            transformType = 1;
+            kmlDIR = "./resources/uploaded/" + id + "/";
+            if (createTmpDirectory() == 0)
+                return (-1);
+            //input.delete();
+            return (readFromKML(input));
+        }
+        else if (extension.equals("kmz"))
+        {
+            kmlDIR = "./resources/uploaded/" + id + "/";
+            if (createTmpDirectory() == 0)
+                return (-1);
+            int ret = readFromKMZ();
+            //input.delete();
+            transformType = 1;
+            return (ret);
+        }
+        else
+            return 0; // неизвестный формат
+    }
+
+    public void print(){
+        for (Point p : readedPoints) {
+            System.out.printf("%s  %f  %f  %f\n", p.name, p.x, p.y, p.h);
+        }
+    }
+
+
 }
 
 

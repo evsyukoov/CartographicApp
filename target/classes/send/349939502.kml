@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://earth.google.com/kml/2.0"><Document><Style id="z1"><IconStyle><scale>1.2</scale><color>ffFFFFFF</color><Icon><href>http://maps.google.com/mapfiles/kml/shapes/triangle.png</href></Icon></IconStyle></Style>
-<Placemark><name>абвгб</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>22.848667357815444,39.73199392942644</coordinates></Point></Placemark>
+<Placemark><name>ф1</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>112.73456353142319,59.654137994420346,0.0</coordinates></Point></Placemark>
+<Placemark><name>a2</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>112.56853668899026,59.58356847995399,0.0</coordinates></Point></Placemark>
+<Placemark><name>A3</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>112.59523632985955,59.49135455145448,0.0</coordinates></Point></Placemark>
+<Placemark><name>a4</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>112.73094241062407,59.52616028345159,0.0</coordinates></Point></Placemark>
+<Placemark><name>a5</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>112.96977646979414,59.411634756702526,0.0</coordinates></Point></Placemark>
+<Placemark><name>a6</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>113.25362089627869,59.378422346854705,0.0</coordinates></Point></Placemark>
+<Placemark><name>апа7</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>113.27233536806084,59.47255856371995,0.0</coordinates></Point></Placemark>
+<Placemark><name>a8</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>113.52846009529169,59.349028557267054,0.0</coordinates></Point></Placemark>
+<Placemark><name>a9</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>113.54596198524652,59.462774125071284,0.0</coordinates></Point></Placemark>
+<Placemark><name>a10</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>113.73134287675276,59.49701895711365,0.0</coordinates></Point></Placemark>
+<Placemark><name>a11</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>113.75162919819381,59.545026297606285,0.0</coordinates></Point></Placemark>
 </Document>
 </kml>

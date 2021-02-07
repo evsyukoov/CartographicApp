@@ -14,6 +14,22 @@ public class Client {
 
     private String savePath;
 
+    public String getExtension() {
+        return extension;
+    }
+
+    private String extension;
+
+    private String errorMSG;
+
+    public String getErrorMSG() {
+        return errorMSG;
+    }
+
+    public void setErrorMSG(String errorMSG) {
+        this.errorMSG = errorMSG;
+    }
+
     private String choosedSK;
 
     private String choosedType;
@@ -21,6 +37,16 @@ public class Client {
     private String choosedZone;
 
     private ArrayList<File> files;
+
+    public int getTransformType() {
+        return transformType;
+    }
+
+    public void setTransformType(int transformType) {
+        this.transformType = transformType;
+    }
+
+    private int transformType;
 
     private long id;
 
@@ -77,6 +103,10 @@ public class Client {
 
     public void setState(int state) {
         this.state = state;
+    }
+
+    public void setExtension(String extension) {
+        this.extension = extension;
     }
 
     public int getState() {

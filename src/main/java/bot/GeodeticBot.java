@@ -41,9 +41,8 @@ public class GeodeticBot extends TelegramLongPollingBot {
         BotState bs;
         Boolean isInBD;
         Client client;
-        System.out.println(update.getMessage().getText());
         if (update.getMessage() != null &&
-                (update.getMessage().getDocument() != null || !update.getMessage().getText().isEmpty()))
+                (update.getMessage().getDocument() != null || update.getMessage().getText() != null))
         {
             long id = update.getMessage().getChat().getId();
             try {
