@@ -11,9 +11,9 @@ import java.sql.SQLException;
 public class DAO {
     protected Connection connection = null;
     private final String URL = "localhost:3036/transform_bot";
-    private final String CONNECTION = "jdbc:mysql://localhost:3306/transform_bot?allowPublicKeyRetrieval=true&useSSL=false" +
+    private final String CONNECTION = "jdbc:mysql://mysql:3306/transform_bot?allowPublicKeyRetrieval=true&useSSL=false" +
             "&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
-    private final String LOGIN = "root";
+    private final String LOGIN = "admin";
     private final String PASS = "1111";
 
     public void selectTypes() throws SQLException{}
@@ -21,12 +21,6 @@ public class DAO {
     public void selectSK(String type) throws SQLException{}
 
     public void selectZone(String zone) throws SQLException{}
-
-    public void selectParam(String type, String sk, Integer zone) throws SQLException{}
-
-    public boolean addNewClient(long clientId) throws SQLException{
-        return true;
-    }
 
     public void closePrepareStatement(PreparedStatement ps) {
         if (ps != null) {

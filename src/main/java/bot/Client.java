@@ -80,9 +80,9 @@ public class Client {
 
     public Client(long id) {
         this.id = id;
-        uploadPath = "./resources/uploaded/" + "file_" + id;
+        uploadPath = "./src/main/resources/uploaded/" + "file_" + id;
         isClientReady = false;
-        savePath = "./resources/send/" + id;
+        savePath = "./src/main/resources/send/" + id;
     }
 
     public void setPointsFromFile(LinkedList<Point> pointsFromFile) {

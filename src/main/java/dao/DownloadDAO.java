@@ -15,10 +15,10 @@ public class DownloadDAO extends DAO {
     private final String DOWNLOAD = "INSERT INTO coordinate_systems(Type, Sk, Param, Zone) VALUES(?,?,?,?)";
 
     public void startDownload() throws SQLException {
-        File file = new File("./src/main/java/Helper/projections.txt");
+        System.out.println("Start download");
+        File file = new File("./src/main/java/Helper/Projections.txt");
         Helper helper = new Helper();
         helper.read(file);
-        //System.out.println(helper);
         PreparedStatement ps = connection.prepareStatement(DOWNLOAD);
         LinkedList<SystemParam> params = helper.getParams();
         for(int i = 0; i < params.size(); i++)
@@ -30,6 +30,7 @@ public class DownloadDAO extends DAO {
             ps.executeUpdate();
         }
         closePrepareStatement(ps);
+        System.out.println("Predownload is finish!");
 
     }
 }

@@ -219,7 +219,7 @@ public class Converter
         else if (extension.equals("kml") || extension.equals("KML"))
         {
             transformType = 1;
-            kmlDIR = "./resources/uploaded/" + id + "/";
+            kmlDIR = "./src/main/resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)
                 return (-1);
             //input.delete();
@@ -227,7 +227,7 @@ public class Converter
         }
         else if (extension.equals("kmz") || extension.equals("KMZ"))
         {
-            kmlDIR = "./resources/uploaded/" + id + "/";
+            kmlDIR = "./src/main/resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)
                 return (-1);
             int ret = readFromKMZ();

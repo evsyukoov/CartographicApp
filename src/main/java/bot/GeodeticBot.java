@@ -1,14 +1,18 @@
 package bot;
 
+import Helper.Helper;
 import dao.ClientDAO;
 import dao.DAO;
+import dao.DownloadDAO;
 import org.json.JSONObject;
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.TelegramBotsApi;
 import org.telegram.telegrambots.api.methods.GetFile;
+import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Document;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.exceptions.TelegramApiException;
 import org.telegram.telegrambots.exceptions.TelegramApiRequestException;
 
 import javax.print.Doc;
@@ -23,7 +27,7 @@ import java.util.LinkedList;
 public class GeodeticBot extends TelegramLongPollingBot {
 
     public static DAO dao;
-    final String token = "1555019728:AAH3SgshB-qQR4SoW0TwkUWsfwAq-QArlKU";
+    final String token = "";
 
     public static LinkedList<Client> clients;
 
@@ -39,7 +43,6 @@ public class GeodeticBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         BotState bs;
-        Boolean isInBD;
         Client client;
         if (update.getMessage() != null &&
                 (update.getMessage().getDocument() != null || update.getMessage().getText() != null))
@@ -86,11 +89,26 @@ public class GeodeticBot extends TelegramLongPollingBot {
         return token;
     }
 
-    public static void main(String[] args) {
+    public static void preDownload() throws SQLException
+    {
+        DownloadDAO dao = new DownloadDAO();
+        dao.startConnection();
+        dao.startDownload();
+        dao.closeConnection();
+    }
+
+    public static void main(String[] args) throws InterruptedException {
         ApiContextInitializer.init();
         dao = new DAO();
-        clients = new LinkedList<Client>();
         dao.register();
+        Thread.sleep(10000);
+        try {
+            preDownload();
+        }catch (SQLException e)
+        {
+            e.printStackTrace();
+        }
+        clients = new LinkedList<Client>();
         TelegramBotsApi botsApi = new TelegramBotsApi();
         try {
             botsApi.registerBot(new GeodeticBot());

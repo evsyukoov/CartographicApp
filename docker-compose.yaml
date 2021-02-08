@@ -1,0 +1,22 @@
+version: '3.1'
+
+
+services:
+  mysql:
+    image: mariadb:latest
+    ports:
+      - 12345:3306
+    command: --init-file /scrypt.sql
+    volumes:
+      - ./scrypt.sql:/scrypt.sql
+    environment:
+      MYSQL_DATABASE: transform_bot
+      MYSQL_ROOT_PASSWORD: 1111
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: 1111
+
+  web:
+    image: bot:latest
+    links:
+      - mysql
+

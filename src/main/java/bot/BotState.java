@@ -1,7 +1,5 @@
 package bot;
 
-import com.ibm.icu.text.CharsetDetector;
-import com.ibm.icu.text.CharsetMatch;
 import convert.Converter;
 import convert.Transformator;
 import dao.ClientDAO;
@@ -123,7 +121,6 @@ public enum BotState {
     //2
     CHOOSE_TYPE {
         private Boolean isRightAnswer;
-        private ArrayList<String> availableTypes;
         private Boolean isStopped;
         private Boolean skip;
 
@@ -135,10 +132,9 @@ public enum BotState {
                 client.setSd(sd);
                 sd.selectTypes();
                 sd.closeConnection();
-                availableTypes = sd.getTypes();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите тип СК");
-                setButtons(sm, availableTypes);
+                setButtons(sm, sd.getTypes());
                 if (sendMessage(botContext, sm) == 0)
                     return (0);
                 client.setState(2);
@@ -158,7 +154,7 @@ public enum BotState {
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             String recieve = botContext.getMessage().getText();
-            if (recieve == null || !availableTypes.contains(recieve)) {
+            if (recieve == null || !client.getSd().getTypes().contains(recieve)) {
                 isRightAnswer = false;
                 client.setErrorMSG("Неверно выбран тип СК\nВыберите тип СК");
             }
@@ -191,7 +187,6 @@ public enum BotState {
     //3
     CHOOSE_SK {
         private Boolean isRightAnswer;
-        private ArrayList<String> availableSK;
         private Boolean isStopped;
 
         @Override
@@ -200,10 +195,9 @@ public enum BotState {
                 client.getSd().startConnection();
                 client.getSd().selectSK(client.getChoosedType());
                 client.getSd().closeConnection();
-                availableSK = client.getSd().getSk();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите регион(район)");
-                setButtons(sm, availableSK);
+                setButtons(sm, client.getSd().getSk());
                 if (sendMessage(botContext, sm) == 0)
                     return (0);
                 client.setState(3);
@@ -221,7 +215,7 @@ public enum BotState {
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             String recieve = botContext.getMessage().getText();
-            if (recieve == null || !availableSK.contains(recieve)) {
+            if (recieve == null || !client.getSd().getSk().contains(recieve)) {
                 isRightAnswer = false;
                 client.setErrorMSG("Неверно выбран регион(район)\nВыберите регион(район)");
             }
@@ -245,7 +239,6 @@ public enum BotState {
     //4
     CHOOSE_ZONE
     {
-        ArrayList<String> availableZones;
         private Boolean isRightAnswer;
         private Boolean badTransform ;
         private Boolean isStopped;
@@ -257,10 +250,9 @@ public enum BotState {
                 sd.startConnection();
                 sd.selectZone(client.getChoosedSK());
                 sd.closeConnection();
-                availableZones = sd.getZones();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите зону");
-                setButtons(sm, availableZones);
+                setButtons(sm, client.getSd().getZones());
                 if (sendMessage(botContext, sm) == 0)
                     return (0);
             }
@@ -281,7 +273,7 @@ public enum BotState {
             try {
                 SelectDAO sd = client.getSd();
                 String recieve = botContext.getMessage().getText();
-                 if (recieve == null || availableZones.contains(recieve)){
+                 if (recieve == null || client.getSd().getZones().contains(recieve)){
                     isRightAnswer = true;
                     sd.startConnection();
                     sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
@@ -471,7 +463,7 @@ public enum BotState {
 
     public int uploadFile(BotContext botContext, Client client) {
         Document doc = botContext.getMessage().getDocument();
-        uploadFile = "./resources/uploaded/file_" + botContext.getMessage().getChat().getId().toString();
+        uploadFile = "./src/main/resources/uploaded/file_" + botContext.getMessage().getChat().getId().toString();
         try {
             URL url = new URL("https://api.telegram.org/bot"
                     + botContext.getToken() + "/getFile?file_id=" + doc.getFileId());
