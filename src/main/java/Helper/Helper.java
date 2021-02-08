@@ -57,7 +57,7 @@ public class Helper {
         String begin  = "+title= ";
         int posBegin = line.indexOf(begin);
         int posEnd = line.indexOf("+proj=tmerc");
-        String params = line.substring(posEnd);
+        String params = line.substring(posEnd, line.length() - 2);
 
         line = line.substring(posBegin + begin.length(), posEnd);
         if (line.startsWith("МСК")) {

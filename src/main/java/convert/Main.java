@@ -49,7 +49,7 @@ public class Main {
 
 
         //Test parsing
-//        File file = new File("./projections.txt");
+//        File file = new File("./src/main/java/Helper/projections.txt");
 //        Helper help = new Helper();
 //        help.read(file);
 //        DownloadDAO dao = new DownloadDAO();

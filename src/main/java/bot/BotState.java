@@ -131,7 +131,10 @@ public enum BotState {
         public int writeToClient(BotContext botContext, Client client) {
             try {
                 SelectDAO sd = new SelectDAO();
+                sd.startConnection();
+                client.setSd(sd);
                 sd.selectTypes();
+                sd.closeConnection();
                 availableTypes = sd.getTypes();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите тип СК");
@@ -194,9 +197,10 @@ public enum BotState {
         @Override
         public int writeToClient(BotContext botContext, Client client) {
             try {
-                SelectDAO sd = new SelectDAO();
-                sd.selectSK(client.getChoosedType());
-                availableSK = sd.getSk();
+                client.getSd().startConnection();
+                client.getSd().selectSK(client.getChoosedType());
+                client.getSd().closeConnection();
+                availableSK = client.getSd().getSk();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите регион(район)");
                 setButtons(sm, availableSK);
@@ -249,8 +253,10 @@ public enum BotState {
         @Override
         public int writeToClient(BotContext botContext, Client client) {
             try {
-                SelectDAO sd = new SelectDAO();
+                SelectDAO sd = client.getSd();
+                sd.startConnection();
                 sd.selectZone(client.getChoosedSK());
+                sd.closeConnection();
                 availableZones = sd.getZones();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите зону");
@@ -273,11 +279,13 @@ public enum BotState {
             if ((isStopped = checkStop(botContext, client)))
                 return (0);
             try {
-                SelectDAO sd = new SelectDAO();
+                SelectDAO sd = client.getSd();
                 String recieve = botContext.getMessage().getText();
                  if (recieve == null || availableZones.contains(recieve)){
                     isRightAnswer = true;
+                    sd.startConnection();
                     sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
+                    sd.closeConnection();
                     Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
                     if (transformator.transform() == 0) {
                         client.setErrorMSG("Ошибка трансформации");

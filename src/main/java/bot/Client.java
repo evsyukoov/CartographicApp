@@ -2,6 +2,7 @@ package bot;
 
 
 import convert.Point;
+import dao.SelectDAO;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -21,6 +22,17 @@ public class Client {
     private String extension;
 
     private String errorMSG;
+
+    private SelectDAO sd;
+
+    public void setSd(SelectDAO sd) {
+        this.sd = sd;
+    }
+
+
+    public SelectDAO getSd() {
+        return sd;
+    }
 
     public String getErrorMSG() {
         return errorMSG;

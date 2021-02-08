@@ -23,7 +23,7 @@ import java.util.LinkedList;
 public class GeodeticBot extends TelegramLongPollingBot {
 
     public static DAO dao;
-    final String token = "";
+    final String token = "1555019728:AAH3SgshB-qQR4SoW0TwkUWsfwAq-QArlKU";
 
     public static LinkedList<Client> clients;
 
@@ -46,40 +46,30 @@ public class GeodeticBot extends TelegramLongPollingBot {
         {
             long id = update.getMessage().getChat().getId();
             try {
-                ClientDAO clientBD = new ClientDAO(id);
                 BotContext botContext = new BotContext(this, update.getMessage(), token);
-                //первый заход клиента в бот
-                if (!(isInBD = clientBD.addNewClient())) {
+                //добавляем клиента в базу или увеличиваем счетчик заходов (для сбора статистики)
+                if ((client = getClientFromId(id)) == null)
+                {
+                    ClientDAO cd = new ClientDAO(id);
+                    cd.startConnection();
                     client = new Client(id);
+                    cd.addToDataBase();
+                    cd.closeConnection();
                     clients.add(client);
-                    bs = BotState.getStatement(0);
-                    bs.writeToClient(botContext, client);
                     client.setState(1);
                 }
-                //для отладки
-                //остальные
-                else
+                System.out.printf("Client state: %d\n", client.getState());
+                bs = BotState.getStatement(client.getState());
+                bs.readFromClient(botContext, client);
+                bs = bs.next(botContext);
+                bs.writeToClient(botContext, client);
+                if (client.getClientReady())
                 {
-                    //клиент будет удвлен из списка при прохождении полного круга вопрос-ответ
-                    //чтобы не забивать оперативку, поэтому создаем заново
-                    if ((client = getClientFromId(id)) == null)
-                    {
-                        client = new Client(id);
-                        clients.add(client);
-                        client.setState(1);
-                    }
-                    System.out.printf("Client state: %d", client.getState());
-                    bs = BotState.getStatement(client.getState());
-                    bs.readFromClient(botContext, client);
-                    bs = bs.next(botContext);
-                    bs.writeToClient(botContext, client);
-                    if (client.getClientReady())
-                    {
-                        clients.remove(client);
-                        System.out.println("Client delete!");
-                    }
+                    clients.remove(client);
+                    System.out.println("Client delete!");
                 }
-            } catch (Exception throwables) {
+            } catch (SQLException throwables) {
+                System.out.println("MySQL Exception");
                 throwables.printStackTrace();
             }
 
@@ -101,11 +91,6 @@ public class GeodeticBot extends TelegramLongPollingBot {
         dao = new DAO();
         clients = new LinkedList<Client>();
         dao.register();
-        try {
-            dao.startConnection();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
         TelegramBotsApi botsApi = new TelegramBotsApi();
         try {
             botsApi.registerBot(new GeodeticBot());

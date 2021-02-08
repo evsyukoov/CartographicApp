@@ -141,11 +141,11 @@ public class Transformator {
 
         try {
             if (transformType == 0) {
-                src = factory.createFromParameters(null, params.substring(0, params.length() - 2));
+                src = factory.createFromParameters(null, params);
                 target = factory.createFromName(WGS84);
             }
             else {
-                target = factory.createFromParameters(null, params.substring(0, params.length() - 2));
+                target = factory.createFromParameters(null, params);
                 src = factory.createFromName(WGS84);
             }
         }

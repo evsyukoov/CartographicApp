@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class DAO {
-    protected static Connection connection = null;
+    protected Connection connection = null;
     private final String URL = "localhost:3036/transform_bot";
     private final String CONNECTION = "jdbc:mysql://localhost:3306/transform_bot?allowPublicKeyRetrieval=true&useSSL=false" +
             "&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
@@ -54,6 +54,10 @@ public class DAO {
     public void startConnection() throws SQLException {
         connection = DriverManager.getConnection(CONNECTION, LOGIN, PASS);
         System.out.println("Connection is established");
+    }
+
+    public void closeConnection() throws SQLException{
+        connection.close();
     }
 
 }

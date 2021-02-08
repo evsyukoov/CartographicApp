@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://earth.google.com/kml/2.0"><Document><Style id="z1"><IconStyle><scale>1.2</scale><color>ffFFFFFF</color><Icon><href>http://maps.google.com/mapfiles/kml/shapes/triangle.png</href></Icon></IconStyle></Style>
-<Placemark><name>С„1</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.08288886561836,55.1440390099684,0.0</coordinates></Point></Placemark>
-<Placemark><name>a2</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>57.93280052399423,55.07568385085124,0.0</coordinates></Point></Placemark>
-<Placemark><name>A3</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>57.952111041166376,54.98306037755466,0.0</coordinates></Point></Placemark>
-<Placemark><name>a4</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.073772361019245,55.016048115977426,0.0</coordinates></Point></Placemark>
-<Placemark><name>a5</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.279879334067694,54.898293229794156,0.0</coordinates></Point></Placemark>
-<Placemark><name>a6</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.529603171626334,54.861384968759765,0.0</coordinates></Point></Placemark>
-<Placemark><name>Р°РїР°7</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.55026031099333,54.95532435764232,0.0</coordinates></Point></Placemark>
-<Placemark><name>a8</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.771571804243415,54.82850896723722,0.0</coordinates></Point></Placemark>
-<Placemark><name>a9</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.79187369568982,54.94208559838482,0.0</coordinates></Point></Placemark>
-<Placemark><name>a10</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.95726914722025,54.97405923344957,0.0</coordinates></Point></Placemark>
-<Placemark><name>a11</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>58.9772126121925,55.02183862261029,0.0</coordinates></Point></Placemark>
+<Placemark><name>ф1</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.44704988488536,54.1513897851517,0.0</coordinates></Point></Placemark>
+<Placemark><name>a2</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.28078617776322,54.103930445354145,0.0</coordinates></Point></Placemark>
+<Placemark><name>A3</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.26526698874386,54.012202884890506,0.0</coordinates></Point></Placemark>
+<Placemark><name>a4</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.39181007030368,54.02907249417408,0.0</coordinates></Point></Placemark>
+<Placemark><name>a5</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.54320857133851,53.890202922073044,0.0</coordinates></Point></Placemark>
+<Placemark><name>a6</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.76481492665866,53.82403098086947,0.0</coordinates></Point></Placemark>
+<Placemark><name>апа7</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.81799133423873,53.912072477078176,0.0</coordinates></Point></Placemark>
+<Placemark><name>a8</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>70.98041569583931,53.76276114849932,0.0</coordinates></Point></Placemark>
+<Placemark><name>a9</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>71.04015273943598,53.869752743585224,0.0</coordinates></Point></Placemark>
+<Placemark><name>a10</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>71.206842903636,53.880352618443204,0.0</coordinates></Point></Placemark>
+<Placemark><name>a11</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>71.24274143607677,53.92394883412602,0.0</coordinates></Point></Placemark>
 </Document>
 </kml>
