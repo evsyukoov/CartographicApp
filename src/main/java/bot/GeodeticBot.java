@@ -7,20 +7,12 @@ import dao.DownloadDAO;
 import org.json.JSONObject;
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.TelegramBotsApi;
-import org.telegram.telegrambots.api.methods.GetFile;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
-import org.telegram.telegrambots.api.objects.Document;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 import org.telegram.telegrambots.exceptions.TelegramApiRequestException;
 
-import javax.print.Doc;
-import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.sql.SQLException;
 import java.util.LinkedList;
 
@@ -81,7 +73,7 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "GeodeticBot";
+        return "";
     }
 
     @Override
@@ -101,14 +93,14 @@ public class GeodeticBot extends TelegramLongPollingBot {
         ApiContextInitializer.init();
         dao = new DAO();
         dao.register();
-        Thread.sleep(10000);
-        try {
-            preDownload();
-        }catch (SQLException e)
-        {
-            e.printStackTrace();
-        }
-        clients = new LinkedList<Client>();
+//        Thread.sleep(1000);
+//        try {
+//            preDownload();
+//        }catch (SQLException e)
+//        {
+//            e.printStackTrace();
+//        }
+        clients = new LinkedList<>();
         TelegramBotsApi botsApi = new TelegramBotsApi();
         try {
             botsApi.registerBot(new GeodeticBot());

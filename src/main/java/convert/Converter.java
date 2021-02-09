@@ -40,22 +40,33 @@ public class Converter
         this.readedPoints = new LinkedList<Point>();
     }
 
-    public int readLine()
+    public int readText()
     {
-        Point point;
-        if ((point = parseLine(text)) != null)
+        String []arr = text.split("\n");
+        boolean flag = false;
+        int type = 0;
+        Point p;
+        for (int i = 0;i < arr.length; i++)
         {
-            readedPoints.add(point);
-            return (1);
+            type = transformType;
+            if ((p = parseLine(arr[i])) != null)
+            {
+                if (flag && type != transformType)
+                    return (0);
+                readedPoints.add(p);
+            }
+            else
+                return (0);
+            flag = true;
         }
-        return (0);
+        return (1);
     }
 
     public int readFile() {
         BufferedReader fr;
         int type = 0;
         String line;
-        int j = 0;
+        boolean flag = false;
         try {
             fr = new BufferedReader(new FileReader(input));
             while ((line = fr.readLine()) != null) {
@@ -65,14 +76,14 @@ public class Converter
                 type = transformType;
                 if ((point = parseLine(line)) != null) {
                     //если в файле встретились различные типы координат
-                    if (j != 0 && type != transformType)
+                    if (flag && type != transformType)
                         return (0);
                     readedPoints.add(point);
                 }
                 else
                     return (0);
 
-                j++;
+                flag = true;
             }
         } catch (IOException e) { ;
             return (-1);
@@ -98,7 +109,7 @@ public class Converter
         return res;
     }
 
-    public Boolean isWGS(String s1, String s2)
+    private Boolean isWGS(String s1, String s2)
     {
         return matchWGS(s1) && matchWGS(s2);
 
@@ -107,7 +118,7 @@ public class Converter
     // читаем и парсим одну строчку
     private Point     parseLine(String line)
     {
-        String[] splitted = line.split("\\s*,\\s*");
+        String[] splitted = line.split("\\s*;\\s*");
         double h = 0;
         double x;
         double y;
@@ -132,10 +143,6 @@ public class Converter
         return (new Point(splitted[0], x, y, h));
     }
 
-    public File getOutput() {
-        return output;
-    }
-
     public int getTransformType() {
         return transformType;
     }
@@ -149,7 +156,6 @@ public class Converter
         convert.setInputFile(input);
         convert.setInputFormat(KML.class);
         File out = new File(kmlDIR + id);
-        System.out.println(kmlDIR + id);
         try {
             out.createNewFile();
         }catch (IOException e){
@@ -169,7 +175,7 @@ public class Converter
                     String []arr = line.split("\\s*,\\s*");
                     readedPoints.add(new Point(arr[0], Double.parseDouble(arr[3]), Double.parseDouble(arr[2]), Double.parseDouble(arr[4])));
                 }
-                //out.delete();
+                out.delete();
             }
         }
         catch (IOException e) {
@@ -200,9 +206,8 @@ public class Converter
                 return (-1);
             ArrayList<File> extracted = arch.getFromArchive();
             for (File file : extracted) {
-                System.out.printf("file name: %s\n", file.getName());
                 int ret = readFromKML(file);
-                //file.delete();
+                file.delete();
                 if (ret == -1 || ret == 0)
                     return ret;
             }
@@ -211,32 +216,32 @@ public class Converter
 
     public  int run()
     {
-        if (extension.equals("txt") || extension.equals("csv")) {
+        if (extension.equalsIgnoreCase("txt") || extension.equalsIgnoreCase("csv")) {
             int ret = readFile();
-            //input.delete();
+            input.delete();
             return(ret);
         }
-        else if (extension.equals("kml") || extension.equals("KML"))
+        else if (extension.equalsIgnoreCase("kml"))
         {
             transformType = 1;
             kmlDIR = "./src/main/resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)
                 return (-1);
-            //input.delete();
+            input.delete();
             return (readFromKML(input));
         }
-        else if (extension.equals("kmz") || extension.equals("KMZ"))
+        else if (extension.equalsIgnoreCase("KMZ"))
         {
             kmlDIR = "./src/main/resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)
                 return (-1);
             int ret = readFromKMZ();
-            //input.delete();
+            input.delete();
             transformType = 1;
             return (ret);
         }
         else
-            return 0; // неизвестный формат
+            return 0;
     }
 
     public void print(){
@@ -244,8 +249,6 @@ public class Converter
             System.out.printf("%s  %f  %f  %f\n", p.name, p.x, p.y, p.h);
         }
     }
-
-
 }
 
 

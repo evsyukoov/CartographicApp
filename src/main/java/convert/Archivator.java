@@ -23,7 +23,6 @@ public class Archivator {
     ArrayList<File> fromArchive;
 
     public Archivator(File zip, String clientDirectory) {
-        System.out.println(zip.getAbsolutePath());
         this.zip = zip;
         output = null;
         this.clientDirectory = clientDirectory;
@@ -35,14 +34,13 @@ public class Archivator {
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zip))) {
             ZipEntry entry;
             String name;
-            long size;
             int j = 0;
-            while ((entry = zis.getNextEntry()) != null)
+            while ((entry = zis.getNextEntry()) != null && !entry.isDirectory())
             {
+                System.out.println(entry.getName());
                 name = entry.getName();
-                size = entry.getSize();
-                System.out.printf("name: %s, size: %d\n", name, size);
-
+                if (!name.substring(name.indexOf('.') + 1).equalsIgnoreCase("kml"))
+                    continue;
                 File f = new File(clientDirectory + name + j);
                 fromArchive.add(f);
                 FileOutputStream fos = new FileOutputStream(new File(clientDirectory + name + j));
@@ -52,6 +50,7 @@ public class Archivator {
                 fos.flush();
                 fos.close();
                 zis.closeEntry();
+                j++;
             }
         }
         catch (IOException e)

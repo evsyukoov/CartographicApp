@@ -72,7 +72,7 @@ public enum BotState {
             if ((text = botContext.getMessage().getText()) != null)
             {
                 Converter c = new Converter(text);
-                if (c.readLine() == 0) {
+                if (c.readText() == 0) {
                     error = true;
                     client.setErrorMSG("Неверный формат текста\nОтправьте файл или строчку с координатами");
                     return (0);
@@ -455,7 +455,7 @@ public enum BotState {
     {
         int pos = path.indexOf('.');
         if (pos == -1)
-            client.setExtension(".csv");
+            client.setExtension("csv");
         else {
             client.setExtension(path.substring(pos + 1));
         }
@@ -479,7 +479,7 @@ public enum BotState {
                 return (uploadZIP(downoload, client));
             Writer fw  = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()), StandardCharsets.UTF_8);
             String charset;
-            if (client.getExtension().equals("csv"))
+            if (client.getExtension().equalsIgnoreCase("csv"))
                 charset = "windows-1251";
             else
                 charset = "UTF-8";

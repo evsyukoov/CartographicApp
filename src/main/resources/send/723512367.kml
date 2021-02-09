@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://earth.google.com/kml/2.0"><Document><Style id="z1"><IconStyle><scale>1.2</scale><color>ffFFFFFF</color><Icon><href>http://maps.google.com/mapfiles/kml/shapes/triangle.png</href></Icon></IconStyle></Style>
-<Placemark><name>Овнаоу</name><description></description><stileUrl>#z1</stileUrl><Point><coordinates>37.49935465325137,56.457144085557985,0.0</coordinates></Point></Placemark>
-</Document>
-</kml>

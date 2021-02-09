@@ -26,7 +26,6 @@ public class SelectDAO extends DAO{
         zones = new ArrayList<String>();
     }
 
-    @Override
     public void selectTypes() throws SQLException {
         PreparedStatement ps = connection.prepareStatement(TYPES);
         ResultSet rs = ps.executeQuery();
@@ -38,7 +37,6 @@ public class SelectDAO extends DAO{
         closePrepareStatement(ps);
     }
 
-    @Override
     public void selectSK(String type) throws SQLException
     {
         PreparedStatement ps = connection.prepareStatement(SK);

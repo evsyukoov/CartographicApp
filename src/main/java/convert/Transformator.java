@@ -78,7 +78,7 @@ public class Transformator {
             for (Point point : input)
             {
                 if ((p = transformOnePoint(point)) != null)
-                    csv.write(String.format("%s,%s,%s,%s\n", p.name, p.x, p.y, point.h));
+                    csv.write(String.format("%s;%s;%s;%s\n", p.name, p.x, p.y, point.h));
                 else
                     return (0);
             }
@@ -114,7 +114,7 @@ public class Transformator {
             for (Point point : input) {
                 if ((p = transformOnePoint(point)) != null) {
                     writeLine(kml, gpx, p);
-                    csv.write(String.format("%s,%s,%s,%s\n", p.name, p.x, p.y, p.h));
+                    csv.write(String.format("%s;%s;%s;%s\n", p.name, p.x, p.y, p.h));
                 }
                 else
                     return (0);
