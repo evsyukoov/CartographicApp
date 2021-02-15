@@ -35,8 +35,6 @@ public class GeodeticBot extends TelegramLongPollingBot {
     private static DAO dao;
     final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
 
-    private boolean isUpdateSend = false;
-
     public static LinkedList<Client> clients;
 
     //функция для рассылки сообщений об обновлениях
@@ -105,28 +103,6 @@ public class GeodeticBot extends TelegramLongPollingBot {
         dao.startConnection();
         dao.startDownload();
         dao.closeConnection();
-    }
-
-    //отправить сообщение об обновлении
-    public void   sendUpdateInfo()
-    {
-        ClientDAO cd = new ClientDAO();
-        try {
-            cd.startConnection();
-            List<Long> lst = cd.getAllClients();
-            cd.closeConnection();
-            for (Long aLong : lst) {
-                SendMessage sm = new SendMessage();
-                sm.setText("Обноление 1.1. Улучшена навигация по меню");
-                sm.setChatId((long)349939502);
-                execute(sm);
-            }
-
-        }
-        catch (TelegramApiException | SQLException e)
-        {
-            e.printStackTrace();
-        }
     }
 
     public static void main(String[] args){
