@@ -542,6 +542,9 @@ public enum BotState {
     public synchronized void setHelper(SendMessage sendMessage, String action)
     {
         ReplyKeyboardMarkup rkm = new ReplyKeyboardMarkup();
+        rkm.setResizeKeyboard(true);
+        rkm.setSelective(true);
+        //rkm.setOneTimeKeyboard(false);
         List<KeyboardRow> keyboard = new ArrayList<KeyboardRow>();
         KeyboardRow helpers = new KeyboardRow();
         helpers.add(new KeyboardButton(action));
@@ -554,7 +557,7 @@ public enum BotState {
         ReplyKeyboardMarkup rkm = new ReplyKeyboardMarkup();
         rkm.setSelective(true);
         rkm.setResizeKeyboard(true);
-        rkm.setOneTimeKeyboard(false);
+        //rkm.setOneTimeKeyboard(false);
         List<KeyboardRow> keyboard = new ArrayList<KeyboardRow>();
         KeyboardRow helpers = new KeyboardRow();
         helpers.add(new KeyboardButton("Помощь"));
