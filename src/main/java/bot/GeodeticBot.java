@@ -33,7 +33,7 @@ import java.util.*;
 public class GeodeticBot extends TelegramLongPollingBot {
 
     private static DAO dao;
-    final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
+    final String token = "";
 
     public static LinkedList<Client> clients;
 

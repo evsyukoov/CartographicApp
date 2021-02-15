@@ -230,6 +230,7 @@ public enum BotState {
                     client.setState(CHOOSE_TYPE.ordinal());
                 }
                 else {
+                    System.out.printf("recieve: %s\n", recieve);
                     next = CHOOSE_ZONE;
                     client.setChoosedSK(recieve);
                     client.setState(CHOOSE_ZONE.ordinal());
@@ -256,7 +257,7 @@ public enum BotState {
                 sd.closeConnection();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите зону");
-                setButtons(sm, client.getSd().getZones());
+                setButtons(sm, sd.getZones());
                 sendMessage(botContext, sm);
             }
             catch (SQLException e)
@@ -274,6 +275,7 @@ public enum BotState {
             }
             try {
                 SelectDAO sd = client.getSd();
+                System.out.printf("Type: %s, SK: %s \n", client.getChoosedType(), client.getChoosedSK());
                 String recieve = botContext.getMessage().getText();
                 System.out.println(recieve);
                 if (recieve == null || (!sd.getZones().contains(recieve) &&

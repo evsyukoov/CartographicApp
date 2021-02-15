@@ -117,10 +117,6 @@ public class Client {
         return choosedSK;
     }
 
-    public String getChoosedType() {
-        return choosedType;
-    }
-
     public String getChoosedZone() {
         return choosedZone;
     }
@@ -163,5 +159,9 @@ public class Client {
 
     public Boolean getClientReady() {
         return isClientReady;
+    }
+
+    public String getChoosedType() {
+        return choosedType;
     }
 }

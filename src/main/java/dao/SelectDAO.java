@@ -21,12 +21,10 @@ public class SelectDAO extends DAO{
     private String PARAM = "SELECT Param FROM coordinate_systems WHERE Type = ? AND Sk = ? AND Zone = ?";
 
     public SelectDAO() {
-        types = new ArrayList<String>();
-        sk = new ArrayList<String>();
-        zones = new ArrayList<String>();
     }
 
     public void selectTypes() throws SQLException {
+        types = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement(TYPES);
         ResultSet rs = ps.executeQuery();
         while (rs.next()) {
@@ -40,6 +38,7 @@ public class SelectDAO extends DAO{
 
     public void selectSK(String type) throws SQLException
     {
+        sk = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement(SK);
         ps.setString(1, type);
         ResultSet rs = ps.executeQuery();
@@ -54,6 +53,7 @@ public class SelectDAO extends DAO{
 
     public void selectZone(String sk) throws SQLException
     {
+        zones = new ArrayList<>();
         PreparedStatement ps = connection.prepareStatement(ZONE);
         ps.setString(1, sk);
         ResultSet rs = ps.executeQuery();
