@@ -8,8 +8,6 @@ public class BotContext {
     private GeodeticBot bot;
     private Message message;
     private String token;
-    private ClientDAO cd;
-    private SelectDAO sd;
 
     public BotContext(GeodeticBot bot, Message message, String token) {
         this.bot = bot;

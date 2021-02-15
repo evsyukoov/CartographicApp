@@ -35,6 +35,7 @@ public class SelectDAO extends DAO{
                 types.add(next);
         }
         closePrepareStatement(ps);
+        rs.close();
     }
 
     public void selectSK(String type) throws SQLException
@@ -48,6 +49,7 @@ public class SelectDAO extends DAO{
                 sk.add(next);
         }
         closePrepareStatement(ps);
+        rs.close();
     }
 
     public void selectZone(String sk) throws SQLException
@@ -62,6 +64,7 @@ public class SelectDAO extends DAO{
                 zones.add(next);
         }
         closePrepareStatement(ps);
+        rs.close();
     }
 
     public void selectParam(String type, String sk, String zone) throws SQLException {
@@ -73,6 +76,7 @@ public class SelectDAO extends DAO{
         rs.next();
         param = rs.getString(1);
         closePrepareStatement(ps);
+        rs.close();
     }
 
     public String getParam() {

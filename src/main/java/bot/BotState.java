@@ -2,15 +2,12 @@ package bot;
 
 import convert.Converter;
 import convert.Transformator;
-import dao.ClientDAO;
 import dao.SelectDAO;
 import org.json.JSONObject;
 import org.telegram.telegrambots.api.methods.send.SendDocument;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Document;
-import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
@@ -20,7 +17,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -29,19 +25,18 @@ import java.util.List;
 public enum BotState {
     //0
     WELCOME {
-        private static final String HELLO = "Отправьте файл или строчку с координатами";
+        private static final String HELLO = "Отправьте файл или текст с координатами";
 
         @Override
-        public int writeToClient(BotContext botContext, Client client) {
-            if (sendMessage(botContext, HELLO) == 0)
-                return (0);
-            return (1);
+        public void writeToClient(BotContext botContext, Client client) {
+            SendMessage sm = new SendMessage();
+            sm.setText(HELLO);
+            setHelper(sm, "Помощь");
+            sendMessage(botContext, sm);
         }
 
         @Override
-        public int readFromClient(BotContext botContext,  Client client) {
-            return (1);
-        }
+        public void readFromClient(BotContext botContext,  Client client) { }
 
         @Override
         public BotState next(BotContext botContext) {
@@ -50,82 +45,86 @@ public enum BotState {
     },
     //1
     FILE {
-        private Boolean isStopped;
 
-        private Boolean error;
+        private BotState next;
 
         @Override
-        public int writeToClient(BotContext botContext, Client client)
+        public void writeToClient(BotContext botContext, Client client)
         {
-            deleteButtons(botContext);
-            //sendMessage(botContext, "Отправьте файл или строчку с координатами");
-            return (1);
+            SendMessage msg = new SendMessage();
+            msg.setText("Отправьте файл или текст с координатами");
+            setHelper(msg, "Помощь");
+            sendMessage(botContext, msg);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            error = false;
-            if ((isStopped = checkStop(botContext, client)))
-                return (0);
+        public void readFromClient(BotContext botContext, Client client) {
+            next = null;
+            if (checkStop(botContext, client)) {
+                next = FILE;
+                return ;
+            }
             String text;
             //получили от клиента строку
             if ((text = botContext.getMessage().getText()) != null)
             {
+                if (text.equals("Помощь"))
+                {
+                    client.setPrevState(FILE.ordinal());
+                    client.setState(HELP.ordinal());
+                    next = HELP;
+                    return ;
+                }
                 Converter c = new Converter(text);
                 if (c.readText() == 0) {
-                    error = true;
+                    next = ERROR;
                     client.setErrorMSG("Неверный формат текста\nОтправьте файл или строчку с координатами");
-                    return (0);
+                    return ;
                 }
+                next = CHOOSE_TYPE;
                 client.setPointsFromFile(c.getReadedPoints());
                 client.setTransformType(c.getTransformType());
                 client.setExtension(".csv");
-                client.setState(2);
-                return (1);
+                client.setState(CHOOSE_TYPE.ordinal());
+                return ;
             }
             //получили от клиента файл
             if (botContext.getMessage().getDocument() != null && uploadFile(botContext, client) == 0) {
-                error = true;
+                next = ERROR;
                 client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
-                client.setState(1);
-                return (0);
+                client.setState(FILE.ordinal());
+                return ;
             }
             Converter c = new Converter(new File(client.getUploadPath()), client.getId(), client.getExtension());
             int ret = c.run();
             if (ret == 0) {
                 client.setErrorMSG("Неверный формат файла\nОтправьте файл или строчку с координатами");
-                error = true;
-                return (0);
+                next = ERROR;
+                return ;
             }
             else if (ret == -1) {
-                error = true;
+                next = ERROR;
                 client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
-                return (0);
+                return ;
             }
+            next = CHOOSE_TYPE;
             client.setPointsFromFile(c.getReadedPoints());
             client.setTransformType(c.getTransformType());
-            client.setState(2);
+            client.setState(CHOOSE_TYPE.ordinal());
             c.print();
-            return (1);
         }
 
         @Override
         public BotState next(BotContext botContext) {
-            if (error)
-                return ERROR;
-            if (isStopped)
-                return FILE;
-            return CHOOSE_TYPE;
+            return next;
         }
     },
     //2
     CHOOSE_TYPE {
-        private Boolean isRightAnswer;
-        private Boolean isStopped;
-        private Boolean skip;
+        private BotState next;
 
         @Override
-        public int writeToClient(BotContext botContext, Client client) {
+        public void writeToClient(BotContext botContext, Client client) {
             try {
                 SelectDAO sd = new SelectDAO();
                 sd.startConnection();
@@ -135,116 +134,121 @@ public enum BotState {
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите тип СК");
                 setButtons(sm, sd.getTypes());
-                if (sendMessage(botContext, sm) == 0)
-                    return (0);
-                client.setState(2);
+                sendMessage(botContext,sm);
+                client.setState(CHOOSE_TYPE.ordinal());
             }
             catch (SQLException e)
             {
                 e.printStackTrace();
-                return (0);
             }
-            return (1);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            skip = false;
-            isRightAnswer = true;
-            if ((isStopped = checkStop(botContext, client)))
-                return (0);
+        public void readFromClient(BotContext botContext, Client client) {
+            if (checkStop(botContext, client)) {
+                next = FILE;
+            }
             String recieve = botContext.getMessage().getText();
-            if (recieve == null || !client.getSd().getTypes().contains(recieve)) {
-                isRightAnswer = false;
+            if (recieve == null || (!client.getSd().getTypes().contains(recieve)
+                    && !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
+                next = ERROR;
                 client.setErrorMSG("Неверно выбран тип СК\nВыберите тип СК");
             }
             else {
-                if (recieve.equals("SK-42")) {
-                    skip = true;
-                    client.setState(4);
-                    client.setChoosedType(recieve);
-                    client.setChoosedSK("None");
-                    return (1);
+                if (recieve.equals("Помощь"))
+                {
+                    client.setPrevState(CHOOSE_TYPE.ordinal());
+                    client.setState(HELP.ordinal());
+                    next = HELP;
                 }
-                isRightAnswer = true;
-                client.setState(3);
-                client.setChoosedType(recieve);
+                else if (recieve.equals("Назад"))
+                {
+                    next = FILE;
+                    client.setState(FILE.ordinal());
+                }
+                else {
+                    next = CHOOSE_SK;
+                    client.setState(CHOOSE_SK.ordinal());
+                    client.setChoosedType(recieve);
+                }
             }
-            return (1);
         }
 
         @Override
         public BotState next(BotContext botContext) {
-            if (isStopped)
-                return FILE;
-            if (isRightAnswer)
-                return CHOOSE_SK;
-            if (skip)
-                return CHOOSE_ZONE;
-            return ERROR;
+            return next;
         }
     },
     //3
     CHOOSE_SK {
-        private Boolean isRightAnswer;
-        private Boolean isStopped;
+        private BotState next;
 
         @Override
-        public int writeToClient(BotContext botContext, Client client) {
+        public void writeToClient(BotContext botContext, Client client) {
             try {
-                client.getSd().startConnection();
-                client.getSd().selectSK(client.getChoosedType());
-                client.getSd().closeConnection();
+                SelectDAO sd = client.getSd();
+                sd.startConnection();
+                sd.selectSK(client.getChoosedType());
+                sd.closeConnection();
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите регион(район)");
                 setButtons(sm, client.getSd().getSk());
-                if (sendMessage(botContext, sm) == 0)
-                    return (0);
-                client.setState(3);
+                sendMessage(botContext, sm);
+                client.setState(CHOOSE_SK.ordinal());
             }
             catch (SQLException e)
             {
                 e.printStackTrace();
-                return (0);
             }
-            return (1);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            if ((isStopped = checkStop(botContext, client)))
-                return (0);
+        public void readFromClient(BotContext botContext, Client client) {
+            next = null;
+            if (checkStop(botContext, client))
+            {
+                next = FILE;
+                return;
+            }
             String recieve = botContext.getMessage().getText();
-            if (recieve == null || !client.getSd().getSk().contains(recieve)) {
-                isRightAnswer = false;
+            if (recieve == null || (!client.getSd().getSk().contains(recieve) &&
+                    !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
+                next = ERROR;
                 client.setErrorMSG("Неверно выбран регион(район)\nВыберите регион(район)");
             }
             else {
-                isRightAnswer = true;
-                client.setChoosedSK(recieve);
-                client.setState(4);
+                if (recieve.equals("Помощь"))
+                {
+                    next = HELP;
+                    client.setPrevState(CHOOSE_SK.ordinal());
+                    client.setState(HELP.ordinal());
+                    next = HELP;
+                }
+                else if (recieve.equals("Назад"))
+                {
+                    next = CHOOSE_TYPE;
+                    client.setState(CHOOSE_TYPE.ordinal());
+                }
+                else {
+                    next = CHOOSE_ZONE;
+                    client.setChoosedSK(recieve);
+                    client.setState(CHOOSE_ZONE.ordinal());
+                }
             }
-            return (1);
         }
 
         @Override
         public BotState next(BotContext botContext) {
-            if (isStopped)
-                return FILE;
-            if (isRightAnswer)
-                return CHOOSE_ZONE;
-            return ERROR;
+            return next;
         }
     },
     //4
     CHOOSE_ZONE
     {
-        private Boolean isRightAnswer;
-        private Boolean badTransform ;
-        private Boolean isStopped;
+        BotState next;
 
         @Override
-        public int writeToClient(BotContext botContext, Client client) {
+        public void writeToClient(BotContext botContext, Client client) {
             try {
                 SelectDAO sd = client.getSd();
                 sd.startConnection();
@@ -253,78 +257,85 @@ public enum BotState {
                 SendMessage sm = new SendMessage();
                 sm.setText("Выберите зону");
                 setButtons(sm, client.getSd().getZones());
-                if (sendMessage(botContext, sm) == 0)
-                    return (0);
+                sendMessage(botContext, sm);
             }
             catch (SQLException e)
             {
                 e.printStackTrace();
-                return (0);
             }
-            return (1);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            isRightAnswer = false;
-            badTransform = false;
-            if ((isStopped = checkStop(botContext, client)))
-                return (0);
+        public void readFromClient(BotContext botContext, Client client) {
+            next = null;
+            if (checkStop(botContext, client)) {
+                next = FILE;
+                return;
+            }
             try {
                 SelectDAO sd = client.getSd();
                 String recieve = botContext.getMessage().getText();
-                 if (recieve == null || client.getSd().getZones().contains(recieve)){
-                    isRightAnswer = true;
-                    sd.startConnection();
-                    sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
-                    sd.closeConnection();
-                    Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
-                    if (transformator.transform() == 0) {
-                        client.setErrorMSG("Ошибка трансформации");
-                        badTransform = true;
-                        client.setState(1);
-                    }
-                          client.setFiles(transformator.getFiles());
-                }
-                 else  {
-                     client.setErrorMSG("Неверно выбрана зона\nВыберите зону");
+                System.out.println(recieve);
+                if (recieve == null || (!sd.getZones().contains(recieve) &&
+                        !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
+                    next = ERROR;
+                    client.setErrorMSG("Неверно выбрана зона\nВыберите зону");
+                 }
+                 else
+                 {
+                     if (recieve.equals("Помощь"))
+                     {
+                         client.setPrevState(CHOOSE_ZONE.ordinal());
+                         client.setState(HELP.ordinal());
+                         next = HELP;
+                     }
+                     else if (recieve.equals("Назад"))
+                     {
+                         next = CHOOSE_SK;
+                         client.setState(CHOOSE_SK.ordinal());
+                     }
+                     else
+                     {
+                         next = EXECUTE;
+                         sd.startConnection();
+                         sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
+                         sd.closeConnection();
+                         Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
+                         if (transformator.transform() == 0) {
+                             client.setErrorMSG("Ошибка трансформации");
+                             next = TRANSFORM_ERROR;
+                             client.setState(FILE.ordinal());
+                         }
+                         client.setFiles(transformator.getFiles());
+                     }
                  }
             }
-            catch (SQLException e)
-            {
+            catch (SQLException e) {
                 e.printStackTrace();
-                return (0);
             }
-            return (1);
         }
 
 
         @Override
         public BotState next(BotContext botContext) {
-            if (isStopped)
-                return  FILE;
-            if (badTransform)
-                return TRANSFORM_ERROR;
-            if (isRightAnswer)
-                return EXECUTE;
-            return ERROR;
+            return next;
         }
     },
 
     //последний  стейт если все хорошо
     EXECUTE {
-        @Override public int writeToClient(BotContext botContext, Client client) {
+        @Override public void writeToClient(BotContext botContext, Client client) {
             for(int i = 0;i < client.getFiles().size(); i++)
                 sendFile(botContext, client.getFiles().get(i));
             client.setClientReady(true);
-            deleteButtons(botContext);
-            return 0;
+            SendMessage sm = new SendMessage();
+            sm.setText("Отправьте файл или текст с координатами");
+            setHelper(sm, "Помощь");
+            sendMessage(botContext, sm);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            return 0;
-        }
+        public void readFromClient(BotContext botContext, Client client) { }
 
         @Override
         public BotState next(BotContext botContext) {
@@ -335,16 +346,14 @@ public enum BotState {
     //6
     ERROR {
         @Override
-        public int writeToClient(BotContext botContext, Client client) {
+        public void writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
             sm.setText(client.getErrorMSG());
             sendMessage(botContext, sm);
-            return (1);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            return (1);
+        public void readFromClient(BotContext botContext, Client client) {
         }
 
         @Override
@@ -352,25 +361,65 @@ public enum BotState {
             return null;
             }
         },
-
+    //7
     TRANSFORM_ERROR {
         @Override
-        public int writeToClient(BotContext botContext, Client client) {
+        public void writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
             sm.setText(client.getErrorMSG());
             sendMessage(botContext, sm);
-            deleteButtons(botContext);
-            return (1);
+            sm.setText("Отправьте файл или текст с координатами");
+            setHelper(sm, "Помощь");
+            sendMessage(botContext, sm);
         }
 
         @Override
-        public int readFromClient(BotContext botContext, Client client) {
-            return (1);
-        }
+        public void readFromClient(BotContext botContext, Client client) {}
 
         @Override
         public BotState next(BotContext botContext) {
             return null;
+        }
+    },
+    //8
+    HELP {
+        private BotState next;
+        private static final String HELPER = "Принимаемые типы файлов: kml, kmz, csv, txt, текст\n" +
+                                            "Формат  текста: Point; North; East; (Elevation)\n" +
+                                            "Все преобразования выполняются на Transverse Mercator\n" +
+                                            "Разделитель целой и дробной части - точка\n" +
+                                            "Формат WGS-координат Lat(Long) = DD.DDDDD(градусы и десятичные доли градуса)\n" +
+                                            "Для возврата в начало разговора введите /stop";
+        @Override
+        public void writeToClient(BotContext botContext, Client client) {
+            SendMessage sm = new SendMessage();
+            sm.setText(HELPER);
+            setHelper(sm, "Назад");
+            sendMessage(botContext, sm);
+        }
+
+        @Override
+        public void readFromClient(BotContext botContext, Client client) {
+            String recieve = botContext.getMessage().getText();
+            next = null;
+            if (recieve != null && recieve.equals("Назад"))
+            {
+                int prevState = client.getPrevState();
+                client.setState(prevState);
+                next = BotState.getStatement(prevState);
+            }
+            else if (recieve != null && recieve.equals("/stop"))
+            {
+                client.setState(FILE.ordinal());
+                next = FILE;
+            }
+        }
+
+        @Override
+        public BotState next(BotContext botContext) {
+            if (next != null)
+                return next;
+            return HELP;
         }
     };
 
@@ -385,11 +434,10 @@ public enum BotState {
     }
 
 
-    private String uploadFile;
 
-    public abstract int writeToClient(BotContext botContext, Client client);
+    public abstract void writeToClient(BotContext botContext, Client client);
 
-    public abstract int readFromClient(BotContext botContext, Client client);
+    public abstract void readFromClient(BotContext botContext, Client client);
 
     public abstract BotState next(BotContext botContext);
 
@@ -404,18 +452,7 @@ public enum BotState {
         return false;
     }
 
-    public void     deleteButtons(BotContext botContext)
-    {
-        ReplyKeyboardRemove replyKeyboardRemove = new ReplyKeyboardRemove();
-        SendMessage msg = new SendMessage();
-        msg.setReplyMarkup(replyKeyboardRemove);
-        msg.setText("Отправьте файл или строчку с координатами");
-        sendMessage(botContext, msg);
-    }
-
-
     public void sendFile(BotContext botContext, File file) {
-        SendMessage sendMessage = new SendMessage();
         SendDocument doc = new SendDocument();
         doc.setNewDocument(file);
         doc.setChatId(botContext.getMessage().getChat().getId());
@@ -438,19 +475,6 @@ public enum BotState {
         return (1);
     }
 
-    public int sendMessage(BotContext botContext, String text) {
-        SendMessage sm = new SendMessage();
-        sm.setText(text);
-        sm.setChatId(botContext.getMessage().getChat().getId());
-        try {
-            botContext.getBot().execute(sm);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-            return (0);
-        }
-        return (1);
-    }
-
     private void    findExtension(String path, Client client)
     {
         int pos = path.indexOf('.');
@@ -463,7 +487,6 @@ public enum BotState {
 
     public int uploadFile(BotContext botContext, Client client) {
         Document doc = botContext.getMessage().getDocument();
-        uploadFile = "./src/main/resources/uploaded/file_" + botContext.getMessage().getChat().getId().toString();
         try {
             URL url = new URL("https://api.telegram.org/bot"
                     + botContext.getToken() + "/getFile?file_id=" + doc.getFileId());
@@ -516,12 +539,27 @@ public enum BotState {
         return (1);
     }
 
+    public synchronized void setHelper(SendMessage sendMessage, String action)
+    {
+        ReplyKeyboardMarkup rkm = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboard = new ArrayList<KeyboardRow>();
+        KeyboardRow helpers = new KeyboardRow();
+        helpers.add(new KeyboardButton(action));
+        keyboard.add(helpers);
+        rkm.setKeyboard(keyboard);
+        sendMessage.setReplyMarkup(rkm);
+    }
+
     public synchronized void setButtons(SendMessage sendMessage, ArrayList<String> buttons) {
         ReplyKeyboardMarkup rkm = new ReplyKeyboardMarkup();
         rkm.setSelective(true);
         rkm.setResizeKeyboard(true);
         rkm.setOneTimeKeyboard(false);
         List<KeyboardRow> keyboard = new ArrayList<KeyboardRow>();
+        KeyboardRow helpers = new KeyboardRow();
+        helpers.add(new KeyboardButton("Помощь"));
+        helpers.add(new KeyboardButton("Назад"));
+        keyboard.add(helpers);
         for (int i = 0; i < buttons.size(); i++) {
             KeyboardRow kr = new KeyboardRow();
             kr.add(new KeyboardButton(buttons.get(i)));

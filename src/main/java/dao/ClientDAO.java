@@ -5,19 +5,38 @@ package dao;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 public class ClientDAO extends DAO {
     long clientId;
+
 
     private final String ID = "SELECT id FROM clients WHERE id = ?";
     private final String ADD = "INSERT INTO clients VALUES(?,?)";
     private final String USING = "UPDATE clients SET count=count+1 WHERE id=?";
 
+    private final String SELECT_ALL = "SELECT id FROM clients";
+
+
+    public ClientDAO() {
+    }
 
     public ClientDAO(long id) {
         this.clientId = id;
     }
 
+    public List<Long> getAllClients() throws SQLException {
+        List<Long> allID = new LinkedList<>();
+        PreparedStatement ps = connection.prepareStatement(SELECT_ALL);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next())
+            allID.add(rs.getLong(1));
+        closePrepareStatement(ps);
+        rs.close();
+        return allID;
+    }
 
     public void addToDataBase() throws SQLException {
         PreparedStatement ps = connection.prepareStatement(ID);

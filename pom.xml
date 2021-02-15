@@ -7,6 +7,7 @@
     <groupId>org.example</groupId>
     <artifactId>TransformBot</artifactId>
     <version>1.0-SNAPSHOT</version>
+
     <build>
         <plugins>
             <plugin>
@@ -56,6 +57,15 @@
                      <!--    <groupId>io.jeo</groupId>-->
             <!--    <artifactId>proj4j</artifactId>-->
             <!--    <version>0.1.1</version>-->
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/net.sourceforge/kabeja -->
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>launcher</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/kabeja/1.0/kabeja-0.4.jar</systemPath>
         </dependency>
 
         <dependency>

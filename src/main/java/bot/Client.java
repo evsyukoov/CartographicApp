@@ -9,6 +9,18 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class Client {
+
+    //номер где будет храниться предыдущий стейт клиента в случае ухода с основной ветки
+    private int prevState;
+
+    public int getPrevState() {
+        return prevState;
+    }
+
+    public void setPrevState(int prevState) {
+        this.prevState = prevState;
+    }
+
     private LinkedList<Point> pointsFromFile;
 
     private  String uploadPath;

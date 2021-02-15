@@ -1,0 +1,71 @@
+ org.kabeja.parser.Parser dxfParser = ParserBuilder.createDefaultParser();
+       // DXFParser
+
+        try {
+            dxfParser.parse(new FileInputStream("./test2.dxf"), "UTF-8");
+            DXFDocument doc = dxfParser.getDocument();
+            doc.getBounds().getMaximumX();
+            Iterator<DXFLayer> it = doc.getDXFLayerIterator();
+            Iterator<DXFBlock> itt = doc.getDXFBlockIterator();
+            while (itt.hasNext())
+            {
+                DXFBlock db = itt.next();
+                System.out.println(db.getLayerID());
+            }
+            while (it.hasNext())
+            {
+                DXFLayer v = it.next();
+                System.out.printf("        LAYER: %s\n", v.getName());
+                Iterator<String> it2 = v.getDXFEntityTypeIterator();
+                while (it2.hasNext())
+                {
+                    String typeOfEntity = it2.next();
+                    System.out.println(typeOfEntity);
+                    if (typeOfEntity != "INSERT")
+                        continue;
+                    List<DXFInsert> de = v.getDXFEntities(typeOfEntity);
+                    List<DXFText> ins = v.getDXFEntities(typeOfEntity);
+                    //DXFAttrib
+                    System.out.println(ins);
+                    for(int i = 0; i < ins.size();i++)
+                    {
+                        DXFBlock dxfBlock = doc.getDXFBlock(de.get(i).getBlockID());
+                        Iterator ittt = dxfBlock.getDXFEntitiesIterator();
+                        while (ittt.hasNext())
+                        {
+                            DXFEntity attr = (DXFEntity)ittt.next();
+                            if (attr.getType() == "CIRCLE")
+                            {
+                            }
+                            System.out.println(attr.getType());
+                        }
+                        //dxfBlock.
+                       // System.out.printf("HATCH: %s\n", hatch.get);
+                        //System.out.println(dxfBlock.getName());
+                    }
+                    for(int i = 0; i < de.size(); i++) {
+                        //System.out.println(dxfBlock.getDXFEntitiesIterator());
+                        System.out.println(de.get(i).getID());
+                        //de.get(i).get
+                        //System.out.println(de1);
+                       // System.out.println(ins2);
+                        //System.out.println(de.get(i).getBlockID());
+                        //Iterator<DXFVertex> vertIt = de.get(i).getVertexIterator();
+//                        while (vertIt.hasNext())
+//                        {
+//                            DXFVertex dxfVertex = vertIt.next();
+//                            Point p = dxfVertex.getPoint();
+//                            System.out.printf("start = %f, end = %f\n", p.getX(), p.getY());
+//                        }
+                       // System.out.printf("x = %f, y = %f\n", end.getX(), end.getY());
+                        //DXFExtrusion dxfExtrusion = de.get(i).getExtrusion();
+                    }
+                }
+                //System.out.printf("Pont: %s\n", v.getName());
+            }
+            //System.out.printf("max: %f\nmin: %f\n", doc.getBounds().getMaximumX(), doc.getBounds().getMinimumX());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }

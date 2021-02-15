@@ -1,10 +1,18 @@
 package bot;
 
-import Helper.Helper;
 import dao.ClientDAO;
 import dao.DAO;
 import dao.DownloadDAO;
-import org.json.JSONObject;
+
+import org.kabeja.dxf.*;
+import org.kabeja.dxf.helpers.Point;
+import org.kabeja.dxf.helpers.Vector;
+import org.kabeja.parser.DXFParser;
+import org.kabeja.parser.ParseException;
+import org.kabeja.parser.ParserBuilder;
+import org.kabeja.parser.entities.DXF3DFaceHandler;
+import org.kabeja.xml.SAXGenerator;
+import org.kabeja.xml.SAXSerializer;
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.TelegramBotsApi;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
@@ -13,15 +21,25 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 import org.telegram.telegrambots.exceptions.TelegramApiRequestException;
 
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.parser.Parser;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.sql.SQLException;
-import java.util.LinkedList;
+import java.util.*;
 
 public class GeodeticBot extends TelegramLongPollingBot {
 
-    public static DAO dao;
+    private static DAO dao;
     final String token = "";
 
+    private boolean isUpdateSend = false;
+
     public static LinkedList<Client> clients;
+
+    //функция для рассылки сообщений об обновлениях
 
     public Client   getClientFromId(long id)
     {
@@ -73,7 +91,7 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "";
+        return "SurveyGeoBot";
     }
 
     @Override
@@ -89,18 +107,34 @@ public class GeodeticBot extends TelegramLongPollingBot {
         dao.closeConnection();
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    //отправить сообщение об обновлении
+    public void   sendUpdateInfo()
+    {
+        ClientDAO cd = new ClientDAO();
+        try {
+            cd.startConnection();
+            List<Long> lst = cd.getAllClients();
+            cd.closeConnection();
+            for (Long aLong : lst) {
+                SendMessage sm = new SendMessage();
+                sm.setText("Обноление 1.1. Улучшена навигация по меню");
+                sm.setChatId((long)349939502);
+                execute(sm);
+            }
+
+        }
+        catch (TelegramApiException | SQLException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args){
         ApiContextInitializer.init();
         dao = new DAO();
         dao.register();
-//        Thread.sleep(1000);
-//        try {
-//            preDownload();
-//        }catch (SQLException e)
-//        {
-//            e.printStackTrace();
-//        }
-        clients = new LinkedList<>();
+        clients = new LinkedList<Client>();
+        System.out.println("Server start!");
         TelegramBotsApi botsApi = new TelegramBotsApi();
         try {
             botsApi.registerBot(new GeodeticBot());

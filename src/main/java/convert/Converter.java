@@ -167,6 +167,10 @@ public class Converter
         String msg = convert.execute();
         if (msg != null)
             return (0);
+        if (out.length() == 0) {
+            out.delete();
+            return (0);
+        }
         try (BufferedReader bfr = new BufferedReader(new FileReader(out))) {
             String line;
             while ((line = bfr.readLine()) != null)
@@ -227,8 +231,9 @@ public class Converter
             kmlDIR = "./src/main/resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)
                 return (-1);
+            int ret = readFromKML(input);
             input.delete();
-            return (readFromKML(input));
+            return (ret);
         }
         else if (extension.equalsIgnoreCase("KMZ"))
         {
