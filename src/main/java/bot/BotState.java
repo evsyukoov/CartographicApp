@@ -4,13 +4,13 @@ import convert.Converter;
 import convert.Transformator;
 import dao.SelectDAO;
 import org.json.JSONObject;
-import org.telegram.telegrambots.api.methods.send.SendDocument;
-import org.telegram.telegrambots.api.methods.send.SendMessage;
-import org.telegram.telegrambots.api.objects.Document;
-import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardButton;
-import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
-import org.telegram.telegrambots.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -456,10 +456,10 @@ public enum BotState {
 
     public void sendFile(BotContext botContext, File file) {
         SendDocument doc = new SendDocument();
-        doc.setNewDocument(file);
+        doc.setDocument(file);
         doc.setChatId(botContext.getMessage().getChat().getId());
         try {
-            botContext.getBot().sendDocument(doc);
+            botContext.getBot().execute(doc);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }

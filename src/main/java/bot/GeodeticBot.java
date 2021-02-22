@@ -4,29 +4,18 @@ import dao.ClientDAO;
 import dao.DAO;
 import dao.DownloadDAO;
 
-import org.kabeja.dxf.*;
-import org.kabeja.dxf.helpers.Point;
-import org.kabeja.dxf.helpers.Vector;
-import org.kabeja.parser.DXFParser;
-import org.kabeja.parser.ParseException;
-import org.kabeja.parser.ParserBuilder;
-import org.kabeja.parser.entities.DXF3DFaceHandler;
-import org.kabeja.xml.SAXGenerator;
-import org.kabeja.xml.SAXSerializer;
 import org.telegram.telegrambots.ApiContextInitializer;
-import org.telegram.telegrambots.TelegramBotsApi;
-import org.telegram.telegrambots.api.methods.send.SendMessage;
-import org.telegram.telegrambots.api.objects.Update;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.exceptions.TelegramApiException;
-import org.telegram.telegrambots.exceptions.TelegramApiRequestException;
 
-import javax.swing.text.html.HTMLDocument;
-import javax.swing.text.html.parser.Parser;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
+import org.telegram.telegrambots.bots.DefaultBotOptions;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+
+import org.telegram.telegrambots.meta.ApiContext;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -34,6 +23,15 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     private static DAO dao;
     final String token = "";
+    private DefaultBotOptions options;
+    private final String botName = "SurveyGeoBot";
+
+    public GeodeticBot(DefaultBotOptions options) {
+        super(options);
+    }
+
+    public GeodeticBot() {
+    }
 
     public static LinkedList<Client> clients;
 
@@ -89,13 +87,15 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "SurveyGeoBot";
+        return botName;
     }
 
     @Override
     public String getBotToken() {
         return token;
     }
+
+
 
     public static void preDownload() throws SQLException
     {
@@ -106,14 +106,25 @@ public class GeodeticBot extends TelegramLongPollingBot {
     }
 
     public static void main(String[] args){
+        TelegramBotsApi botsApi = new TelegramBotsApi();
         ApiContextInitializer.init();
+        DefaultBotOptions botOptions = ApiContext.getInstance(DefaultBotOptions.class);
+            // Авторизация бота в прокси, после создания будет использоваться автоматически
+        Authenticator.setDefault(new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("", "".toCharArray());
+            }
+        });
+        botOptions.setProxyHost("");
+        botOptions.setProxyPort();
+        botOptions.setProxyType(DefaultBotOptions.ProxyType.SOCKS5);
         dao = new DAO();
         dao.register();
         clients = new LinkedList<Client>();
         System.out.println("Server start!");
-        TelegramBotsApi botsApi = new TelegramBotsApi();
         try {
-            botsApi.registerBot(new GeodeticBot());
+            botsApi.registerBot(new GeodeticBot(botOptions));
         } catch (TelegramApiRequestException e) {
             e.printStackTrace();
         }

@@ -1,8 +1,6 @@
 package bot;
 
-import dao.ClientDAO;
-import dao.SelectDAO;
-import org.telegram.telegrambots.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Message;
 
 public class BotContext {
     private GeodeticBot bot;

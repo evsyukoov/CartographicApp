@@ -5,5 +5,7 @@ version="1.1"
 creator="InjGeo_bot"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://www.garmin.com/xmlschemas/WaypointExtension/v1 ">
-<wpt lat="89.99870112838629" lon="-76.3012581718299"><name>1</name><desc>1</desc></wpt>
+<wpt lat="89.99870112838629" lon="-76.30125817183541"><name>1</name><desc>1</desc></wpt>
+<wpt lat="89.99870112838629" lon="-76.30125817183541"><name>2</name><desc>2</desc></wpt>
+<wpt lat="89.99870112838629" lon="-76.30125817183541"><name>asd</name><desc>asd</desc></wpt>
 </gpx>
