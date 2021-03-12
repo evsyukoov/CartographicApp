@@ -1,6 +1,7 @@
 package bot;
 
 
+import convert.DXFConverter;
 import convert.Point;
 import dao.SelectDAO;
 
@@ -22,6 +23,16 @@ public class Client {
     }
 
     private LinkedList<Point> pointsFromFile;
+
+    private DXFConverter dxf;
+
+    public void setDxf(DXFConverter dxf) {
+        this.dxf = dxf;
+    }
+
+    public DXFConverter getDxf() {
+        return dxf;
+    }
 
     private  String uploadPath;
 

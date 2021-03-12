@@ -23,7 +23,10 @@ public class Converter
     private String extension;
     String text;
     private LinkedList<Point> readedPoints;
-    Transformator transformator;
+
+    private boolean isDxf;
+
+    DXFConverter fromDXF;
 
     String kmlDIR;
 
@@ -60,6 +63,10 @@ public class Converter
             flag = true;
         }
         return (1);
+    }
+
+    public DXFConverter getFromDXF() {
+        return fromDXF;
     }
 
     public int readFile() {
@@ -245,8 +252,27 @@ public class Converter
             transformType = 1;
             return (ret);
         }
+        else if (extension.equalsIgnoreCase("dxf"))
+        {
+            isDxf = true;
+            transformType = 0;
+            DXFConverter fromDXF = new DXFConverter(input.getAbsolutePath());
+            int ret = fromDXF.parseDXF();
+            this.fromDXF = fromDXF;
+            fromDXF.print();
+            input.delete();
+            return ret;
+        }
         else
             return 0;
+    }
+
+    public void setReadedPoints(LinkedList<Point> readedPoints) {
+        this.readedPoints = readedPoints;
+    }
+
+    public boolean isDxf() {
+        return isDxf;
     }
 
     public void print(){

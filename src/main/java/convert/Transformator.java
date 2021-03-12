@@ -15,6 +15,8 @@ public class Transformator {
     private String outputFileName;
     private int transformType;
 
+    private DXFConverter dxf;
+
     //точки от клиента
     private LinkedList<Point> input;
 
@@ -33,6 +35,14 @@ public class Transformator {
         this.outputFileName = outputFileName;
         this.params = params;
         this.input = input;
+        this.transformType = transformType;
+        files = new ArrayList<File>();
+    }
+
+    public Transformator(String params, DXFConverter dxf, String outputFileName, int transformType) {
+        this.outputFileName = outputFileName;
+        this.params = params;
+        this.dxf = dxf;
         this.transformType = transformType;
         files = new ArrayList<File>();
     }
@@ -59,13 +69,18 @@ public class Transformator {
 
     public int transform()
     {
-        if (transformType == 0)
+        if (transformType == 0) {
+            if (dxf != null)
+                input = dxf.getBlocks();
             return (transformToWGS());
+        }
         else
             return (transformToLocal());
     }
 
-    public int  transformToLocal()
+
+
+    private int  transformToLocal()
     {
         Point p;
         if (initTransformation() == 0)
@@ -92,8 +107,43 @@ public class Transformator {
         return (1);
     }
 
+    private void     writeLineFromDXFPline(Writer csv, Writer kml, Writer gpx, Point point) throws IOException
+    {
+        csv.write(String.format("%s;%s;%s;%s", point.name, point.x, point.y, point.h));
+
+    }
+
+    //допишем в созданные csv/kml полилинии из dxf, если пользователь прислал dxf
+    private int     transfromPolygonesToWGS(Writer csv, Writer kml, Writer gpx) throws IOException {
+        int i = 1;
+        for(Polyline pline : dxf.getPlines())
+        {
+            kml.write(String.format("<Placemark><name>78</name><description>Unknown Area Type&#60;br&#62;styleUrl: #area%d</description>", i));
+            kml.write("<Style><LineStyle><color>A6000000</color><width>2</width></LineStyle></Style>");
+            kml.write(String.format("<LineString><extrude>%d</extrude><coordinates>", i));
+            csv.write(String.format("Polyline N %d\n", i));
+            gpx.write("<trk><name>injgeo</name><trkseg>");
+            int j = 1;
+            for(Point point : pline.getPline()) {
+                Point res;
+                if ((res = transformOnePoint(point)) == null)
+                    return (0);
+                kml.write(String.format("%s,%s,%s ", res.y, res.x, res.h));
+                csv.write(String.format("Vertex N %d;%s;%s;%s\n", j++,res.x, res.y, res.h));
+                gpx.write(String.format("<trkpt lat=\"%s\" lon=\"%s\"><ele>%s</ele></trkpt>", res.x, res.y, res.h));
+            }
+            Point first = transformOnePoint(pline.getPline().get(0));
+            kml.write(String.format("%s,%s,%s ", first.y, first.x, first.h));
+            gpx.write(String.format("<trkpt lat=\"%s\" lon=\"%s\"><ele>%s</ele></trkpt>", first.x, first.y, first.h));
+            gpx.write("</trkseg></trk>");
+            kml.write("</coordinates></LineString></Placemark>\n");
+            i++;
+        }
+        return (1);
+    }
+
     //трансформируем и сразу создаем все 3 файла (csv, kml и gpx)
-    public int     transformToWGS()
+    private int     transformToWGS()
     {
         Point p;
         if (initTransformation() == 0)
@@ -106,17 +156,20 @@ public class Transformator {
         files.add(file3);
         try {
             Writer csv = new OutputStreamWriter(new FileOutputStream(file1), "windows-1251");
-            //FileWriter csv = new FileWriter(file1);
             Writer kml = new OutputStreamWriter(new FileOutputStream(file2));
-            //FileWriter gpx = new FileWriter(file3);
             Writer gpx = new OutputStreamWriter(new FileOutputStream(file3));
             writeHeaders(kml, gpx);
-            for (Point point : input) {
-                if ((p = transformOnePoint(point)) != null) {
-                    writeLine(kml, gpx, p);
-                    csv.write(String.format("%s;%s;%s;%s\n", p.name, p.x, p.y, p.h));
+            if (input != null) {
+                for (Point point : input) {
+                    if ((p = transformOnePoint(point)) != null) {
+                        writeLine(kml, gpx, p);
+                        csv.write(String.format("%s;%s;%s;%s\n", p.name, p.x, p.y, p.h));
+                    } else
+                        return (0);
                 }
-                else
+            }
+            if (dxf != null && dxf.getPlines() != null) {
+                if (transfromPolygonesToWGS(csv, kml, gpx) == 0)
                     return (0);
             }
             kml.write("</Document>\n</kml>");

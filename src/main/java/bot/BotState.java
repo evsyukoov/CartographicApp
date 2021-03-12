@@ -102,16 +102,24 @@ public enum BotState {
                 next = ERROR;
                 return ;
             }
+            else if (ret == 2)
+            {
+                client.setErrorMSG("В dxf файле не найдено замкнутых полилиний и блоков\nОтправьте файл или строчку с координатами");
+                next = ERROR;
+                return ;
+            }
             else if (ret == -1) {
                 next = ERROR;
                 client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
                 return ;
             }
             next = CHOOSE_TYPE;
-            client.setPointsFromFile(c.getReadedPoints());
+            if (c.isDxf())
+                client.setDxf(c.getFromDXF());
+            else
+                client.setPointsFromFile(c.getReadedPoints());
             client.setTransformType(c.getTransformType());
             client.setState(CHOOSE_TYPE.ordinal());
-            c.print();
         }
 
         @Override
@@ -302,7 +310,11 @@ public enum BotState {
                          sd.startConnection();
                          sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
                          sd.closeConnection();
-                         Transformator transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
+                         Transformator transformator;
+                         if (client.getDxf() != null)
+                             transformator = new Transformator(sd.getParam(), client.getDxf(),client.getSavePath(), client.getTransformType());
+                         else
+                            transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
                          if (transformator.transform() == 0) {
                              client.setErrorMSG("Ошибка трансформации");
                              next = TRANSFORM_ERROR;

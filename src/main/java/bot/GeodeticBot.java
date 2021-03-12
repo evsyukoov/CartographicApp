@@ -35,8 +35,6 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     public static LinkedList<Client> clients;
 
-    //функция для рассылки сообщений об обновлениях
-
     public Client   getClientFromId(long id)
     {
         for (Client c : clients) {
@@ -108,23 +106,12 @@ public class GeodeticBot extends TelegramLongPollingBot {
     public static void main(String[] args){
         TelegramBotsApi botsApi = new TelegramBotsApi();
         ApiContextInitializer.init();
-        DefaultBotOptions botOptions = ApiContext.getInstance(DefaultBotOptions.class);
-            // Авторизация бота в прокси, после создания будет использоваться автоматически
-        Authenticator.setDefault(new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("", "".toCharArray());
-            }
-        });
-        botOptions.setProxyHost("");
-        botOptions.setProxyPort();
-        botOptions.setProxyType(DefaultBotOptions.ProxyType.SOCKS5);
         dao = new DAO();
         dao.register();
         clients = new LinkedList<Client>();
         System.out.println("Server start!");
         try {
-            botsApi.registerBot(new GeodeticBot(botOptions));
+            botsApi.registerBot(new GeodeticBot());
         } catch (TelegramApiRequestException e) {
             e.printStackTrace();
         }
