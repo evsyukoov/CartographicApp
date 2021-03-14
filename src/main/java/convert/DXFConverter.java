@@ -28,7 +28,7 @@ public class DXFConverter {
     private Point parsePoint(String pointText)
     {
         String []pointArr = pointText.split(",");
-        Point p = new Point(pointArr[0], Double.parseDouble(pointArr[2]), Double.parseDouble(pointArr[1]));
+        Point p = new Point(pointArr[0], Double.parseDouble(pointArr[2]), Double.parseDouble(pointArr[1]), Double.parseDouble(pointArr[3]));
         return p;
     }
 

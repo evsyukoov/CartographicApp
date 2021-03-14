@@ -7,3 +7,6 @@ sudo yum install maven
 sudo yum install jdk
 
 #mysqldump -uroot transform_bot > tbot.sql -сделать dump со старого VPS
+
+#use transform_bot;
+#source /home/opc/tbot.sql
