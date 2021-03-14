@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx
+xmlns="http://www.topografix.com/GPX/1/1"
+version="1.1"
+creator="InjGeo_bot"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.garmin.com/xmlschemas/WaypointExtension/v1 ">
+<wpt lat="48.4644509132452" lon="38.39650674544491"><name>V20-8</name><desc>V20-8</desc></wpt>
+<wpt lat="48.46432369030296" lon="38.39332061303602"><name>V20-6</name><desc>V20-6</desc></wpt>
+<wpt lat="48.46457819495663" lon="38.39969300275442"><name>1000</name><desc>1000</desc></wpt>
+</gpx>
