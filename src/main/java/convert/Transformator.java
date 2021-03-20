@@ -132,9 +132,6 @@ public class Transformator {
                 csv.write(String.format("Vertex N %d;%s;%s;%s\n", j++,res.x, res.y, res.h));
                 gpx.write(String.format("<trkpt lat=\"%s\" lon=\"%s\"><ele>%s</ele></trkpt>", res.x, res.y, res.h));
             }
-            Point first = transformOnePoint(pline.getPline().get(0));
-            kml.write(String.format("%s,%s,%s ", first.y, first.x, first.h));
-            gpx.write(String.format("<trkpt lat=\"%s\" lon=\"%s\"><ele>%s</ele></trkpt>", first.x, first.y, first.h));
             gpx.write("</trkseg></trk>");
             kml.write("</coordinates></LineString></Placemark>\n");
             i++;

@@ -9,6 +9,7 @@ public class DXFConverter {
 
     LinkedList<Point> blocks;
     LinkedList<Polyline> plines;
+    Polyline pline;
 
     public LinkedList<Point> getBlocks() {
         return blocks;
@@ -22,6 +23,8 @@ public class DXFConverter {
 
     public DXFConverter(String dxfName) {
         this.dxfName = dxfName;
+        plines = new LinkedList<>();
+        blocks = new LinkedList<>();
 
     }
 
@@ -32,64 +35,61 @@ public class DXFConverter {
         return p;
     }
 
-    private void parseLine(String line)
+    private int parseLine(String line)
     {
-        if (line.startsWith("blocks"))
+        if (line.equals("empty"))
+            return (0);
+        else if (line.startsWith("bl"))
+            blocks.push(parsePoint(line.substring(line.indexOf(',') + 1)));
+        else if (line.equals("endBlocks"))
+            pline = new Polyline();
+        else if (line.equals("endPline"))
         {
-            if (line.split(":")[1].equals("false"))
-                blocks = null;
-            else
-            {
-                blocks = new LinkedList<>();
-                String[] text = line.substring(line.indexOf('{') + 1, line.indexOf('}')).split(";");
-                for (String s : text)
-                    blocks.push(parsePoint(s));
-            }
+            plines.add(pline);
+            pline = new Polyline();
         }
-        else if (line.startsWith("plines"))
-        {
-            if (line.split(":")[1].equals("false"))
-                plines = null;
-            else
-            {
-                plines = new LinkedList<>();
-                String []polilines = line.substring(line.indexOf('{') + 1, line.indexOf('}')).split("\\s");
-                for (String s : polilines) {
-                    Polyline pline = new Polyline();
-                    String[] text = s.split(";");
-                    for (String pointText : text) {
-                        pline.addPoint(parsePoint(pointText));
-                    }
-                    plines.add(pline);
-                }
-            }
-        }
+        else if (Character.isDigit(line.charAt(0)))
+            pline.addPoint(parsePoint(line));
+        return (1);
+    }
+
+    private void checkBlocksAndLines()
+    {
+        if (blocks.isEmpty())
+            blocks = null;
+        if (plines.isEmpty())
+            plines = null;
     }
 
     //сам конвертер написан на с++ с использованием dxflib
     public int   parseDXF()
     {
-        Runtime r =Runtime.getRuntime();
+        Runtime r = Runtime.getRuntime();
         Process p = null;
-        String cmd[]={CPLUSPLUS_BINARY, dxfName};
+        String[] cmd = new String[]{CPLUSPLUS_BINARY, dxfName};
         try{
             p = r.exec(cmd);
-            while (p.isAlive());
-
-            if (p.exitValue() == 2) {
-                System.out.println("There is no blocks and polylines in dxf");
-                return (2);
+            InputStream is = p.getInputStream();
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String res;
+            while ((res = br.readLine()) != null) {
+                int ret = parseLine(res);
+                if (ret == 0) {
+                    System.out.println("There is no blocks and polylines in dxf");
+                    return (2);
+                }
             }
-            else if (p.exitValue() == 0)
+
+            is.close();
+            br.close();
+            checkBlocksAndLines();
+            int exitValue = p.waitFor();
+            if (exitValue == 0)
             {
                 System.out.println("Problems with parsing on server");
                 return (-1);
             }
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String res;
-            while((res = br.readLine()) != null)
-                parseLine(res);
-            br.close();
+
         }
         catch(Exception e)
         {
