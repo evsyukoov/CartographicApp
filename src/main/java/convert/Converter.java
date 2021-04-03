@@ -98,6 +98,9 @@ public class Converter
         return (1);
     }
 
+    public Converter() {
+    }
+
     //смотрим какие координаты в текстовике: WGS-84 или плоские
     private Boolean matchWGS(String s)
     {
@@ -123,7 +126,7 @@ public class Converter
     }
 
     // читаем и парсим одну строчку
-    private Point     parseLine(String line)
+    public Point     parseLine(String line)
     {
         String[] splitted = line.split("\\s*;\\s*");
         double h = 0;

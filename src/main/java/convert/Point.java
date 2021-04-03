@@ -19,5 +19,13 @@ public class Point {
         this.y = y;
     }
 
-
+    @Override
+    public String toString() {
+        return "Point{" +
+                "name='" + name + '\'' +
+                ", x=" + x +
+                ", y=" + y +
+                ", h=" + h +
+                '}';
+    }
 }
