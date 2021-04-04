@@ -30,6 +30,9 @@ public class Transformator {
 
     private final static String WGS84 = "EPSG:4326";
 
+    public Transformator(String params) {
+        this.params = params;
+    }
 
     public Transformator(String params, LinkedList<Point> input, String outputFileName, int transformType) {
         this.outputFileName = outputFileName;
@@ -183,44 +186,31 @@ public class Transformator {
         return (1);
     }
 
-    private int       initTransformation()
+    public int       initTransformation() throws Proj4jException
     {
         CRSFactory factory = new CRSFactory();
         CoordinateReferenceSystem src;
         CoordinateReferenceSystem target;
-
-        try {
-            if (transformType == 0) {
+        if (transformType == 0) {
                 src = factory.createFromParameters(null, params);
                 target = factory.createFromName(WGS84);
-            }
-            else {
-                target = factory.createFromParameters(null, params);
-                src = factory.createFromName(WGS84);
-            }
         }
-        catch (Proj4jException e)
-        {
-            return (0);
+        else {
+            target = factory.createFromParameters(null, params);
+            src = factory.createFromName(WGS84);
         }
-        transformation = new CoordinateTransformFactory().createTransform(src, target);
+       transformation = new CoordinateTransformFactory().createTransform(src, target);
         return (1);
     }
 
-    private     Point    transformOnePoint(Point point)
+    public     Point    transformOnePoint(Point point) throws Proj4jException
     {
         ProjCoordinate result = new ProjCoordinate();
         Point tgt;
         ProjCoordinate src;
-        try {
-            src = new ProjCoordinate(point.y, point.x);
-            transformation.transform(src, result);
-            tgt = new Point(point.name, result.y, result.x);
-        }
-        catch (Exception e)
-        {
-            return (null);
-        }
+        src = new ProjCoordinate(point.y, point.x);
+        transformation.transform(src, result);
+        tgt = new Point(point.name, result.y, result.x);
         return (tgt);
     }
 

@@ -26,7 +26,7 @@ public class GeodeticBot extends TelegramLongPollingBot {
     private static DAO dao;
     final String token = "";
     private DefaultBotOptions options;
-    private final String botName = "";
+    private final String botName = "SurveyGeoBot";
 
     public GeodeticBot(DefaultBotOptions options) {
         super(options);

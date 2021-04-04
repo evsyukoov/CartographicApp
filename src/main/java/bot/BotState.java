@@ -1,6 +1,7 @@
 package bot;
 
-import convert.Converter;
+import bot.enums.InputCoordinatesType;
+import convert.InfoReader;
 import convert.Transformator;
 import dao.SelectDAO;
 import org.json.JSONObject;
@@ -75,15 +76,14 @@ public enum BotState {
                     next = HELP;
                     return ;
                 }
-                Converter c = new Converter(text);
+                InfoReader c = new InfoReader(text);
                 if (c.readText() == 0) {
                     next = ERROR;
                     client.setErrorMSG("Неверный формат текста\nОтправьте файл или строчку с координатами");
                     return ;
                 }
                 next = CHOOSE_TYPE;
-                client.setPointsFromFile(c.getReadedPoints());
-                client.setTransformType(c.getTransformType());
+                client.setInfoReader(c);
                 client.setExtension(".csv");
                 client.setState(CHOOSE_TYPE.ordinal());
                 return ;
@@ -95,7 +95,7 @@ public enum BotState {
                 client.setState(FILE.ordinal());
                 return ;
             }
-            Converter c = new Converter(new File(client.getUploadPath()), client.getId(), client.getExtension());
+            InfoReader c = new InfoReader(new File(client.getUploadPath()), client.getId(), client.getExtension());
             int ret = c.run();
             if (ret == 0) {
                 client.setErrorMSG("Неверный формат файла\nОтправьте файл или строчку с координатами");
@@ -113,13 +113,40 @@ public enum BotState {
                 client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
                 return ;
             }
-            next = CHOOSE_TYPE;
-            if (c.isDxf())
-                client.setDxf(c.getFromDXF());
-            else
-                client.setPointsFromFile(c.getReadedPoints());
-            client.setTransformType(c.getTransformType());
-            client.setState(CHOOSE_TYPE.ordinal());
+            next = CHOOSE_OUTPUT_FILE_OPTION;
+            client.setInfoReader(c);
+            client.setState(next.ordinal());
+        }
+
+        @Override
+        public BotState next(BotContext botContext) {
+            return next;
+        }
+    },
+
+    CHOOSE_OUTPUT_FILE_OPTION {
+        private BotState next;
+        ArrayList<String> buttons;
+        @Override
+        public void writeToClient(BotContext botContext, Client client) {
+            SendMessage sm = new SendMessage();
+            buttons = new ArrayList<>();
+            if (client.getExtension().equals("csv") && client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS) {
+                sm.setText("Выберите формат выходного файла");
+                buttons.add("CSV(плоские)");
+                buttons.add("GPX");
+                buttons.add("KML");
+                setButtons(sm, buttons);
+                sendMessage(botContext, sm);
+            }
+        }
+
+        @Override
+        public void readFromClient(BotContext botContext, Client client) {
+            next = readClientChoice(botContext, client, FILE, CHOOSE_TYPE, "Неверный формат выходного файла\n" +
+                    "Выберите формат выходного файла", buttons);
+            if (next.compareTo(CHOOSE_OUTPUT_FILE_OPTION) > 0)
+                client.analizeTransformationType(botContext.getMessage().getText());
         }
 
         @Override
@@ -153,33 +180,8 @@ public enum BotState {
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
-            if (checkStop(botContext, client)) {
-                next = FILE;
-            }
-            String recieve = botContext.getMessage().getText();
-            if (recieve == null || (!client.getSd().getTypes().contains(recieve)
-                    && !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
-                next = ERROR;
-                client.setErrorMSG("Неверно выбран тип СК\nВыберите тип СК");
-            }
-            else {
-                if (recieve.equals("Помощь"))
-                {
-                    client.setPrevState(CHOOSE_TYPE.ordinal());
-                    client.setState(HELP.ordinal());
-                    next = HELP;
-                }
-                else if (recieve.equals("Назад"))
-                {
-                    next = FILE;
-                    client.setState(FILE.ordinal());
-                }
-                else {
-                    next = CHOOSE_SK;
-                    client.setState(CHOOSE_SK.ordinal());
-                    client.setChoosedType(recieve);
-                }
-            }
+            next = readClientChoice(botContext, client, FILE, CHOOSE_SK,
+                    "Неверно выбран тип  CК\nВыберите тип СК", client.getSd().getTypes());
         }
 
         @Override
@@ -212,38 +214,9 @@ public enum BotState {
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
-            next = null;
-            if (checkStop(botContext, client))
-            {
-                next = FILE;
-                return;
-            }
-            String recieve = botContext.getMessage().getText();
-            if (recieve == null || (!client.getSd().getSk().contains(recieve) &&
-                    !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
-                next = ERROR;
-                client.setErrorMSG("Неверно выбран регион(район)\nВыберите регион(район)");
-            }
-            else {
-                if (recieve.equals("Помощь"))
-                {
-                    next = HELP;
-                    client.setPrevState(CHOOSE_SK.ordinal());
-                    client.setState(HELP.ordinal());
-                    next = HELP;
-                }
-                else if (recieve.equals("Назад"))
-                {
-                    next = CHOOSE_TYPE;
-                    client.setState(CHOOSE_TYPE.ordinal());
-                }
-                else {
-                    System.out.printf("recieve: %s\n", recieve);
-                    next = CHOOSE_ZONE;
-                    client.setChoosedSK(recieve);
-                    client.setState(CHOOSE_ZONE.ordinal());
-                }
-            }
+           next = readClientChoice(botContext, client, CHOOSE_OUTPUT_FILE_OPTION,
+                   CHOOSE_ZONE, "Неверно выбран регион(район)\nВыберите регион(район)",
+                   client.getSd().getSk());
         }
 
         @Override
@@ -310,8 +283,9 @@ public enum BotState {
                          sd.startConnection();
                          sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
                          sd.closeConnection();
+                         client.setTransformationParametrs(sd.getParam());
                          Transformator transformator;
-                         if (client.getDxf() != null)
+                         if (client.getInfoReader().getFromDXF() != null)
                              transformator = new Transformator(sd.getParam(), client.getDxf(),client.getSavePath(), client.getTransformType());
                          else
                             transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
@@ -497,7 +471,7 @@ public enum BotState {
         if (pos == -1)
             client.setExtension("csv");
         else {
-            client.setExtension(path.substring(pos + 1));
+            client.setExtension(path.substring(pos + 1).toLowerCase());
         }
     }
 
@@ -587,5 +561,63 @@ public enum BotState {
         rkm.setKeyboard(keyboard);
         sendMessage.setReplyMarkup(rkm);
     }
+
+    public  BotState readClientChoice(BotContext botContext, Client client,
+                                      BotState back, BotState next, String error, ArrayList<String> checkList)
+    {
+        BotState res;
+        if (checkStop(botContext, client)) {
+            res = FILE;
+            return res;
+        }
+        String recieve = botContext.getMessage().getText();
+        if (recieve == null || (!checkList.contains(recieve)
+                && !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
+            res = ERROR;
+            client.setErrorMSG(error);
+        }
+        else {
+            if (recieve.equals("Помощь"))
+            {
+                client.setPrevState(CHOOSE_TYPE.ordinal());
+                client.setState(HELP.ordinal());
+                res = HELP;
+            }
+            else if (recieve.equals("Назад"))
+            {
+                res = back;
+                client.setState(back.ordinal());
+            }
+            else
+                res = setClientParamOfCurrentState(client, recieve, next);
+        }
+        return res;
+    }
+
+    public     BotState    setClientParamOfCurrentState(Client client, String receive, BotState nxt)
+    {
+        BotState res = nxt;
+        if (client.getState() == CHOOSE_OUTPUT_FILE_OPTION.ordinal())
+        {
+            // вообще пропускаем трансформацию
+            if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS && (receive.equals("GPX")
+            || receive.equals("KML")))
+            {
+                 client.setState(CHOOSE_ZONE.ordinal());
+                 res = CHOOSE_ZONE;
+            }
+        }
+        else if (client.getState() == CHOOSE_SK.ordinal()) {
+            client.setState(nxt.ordinal());
+            client.setChoosedSK(receive);
+        }
+        else if (client.getState() == CHOOSE_TYPE.ordinal())
+        {
+            client.setState(nxt.ordinal());
+            client.setChoosedType(receive);
+        }
+        return res;
+    }
+
 
 };

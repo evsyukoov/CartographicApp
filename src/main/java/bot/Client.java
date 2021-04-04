@@ -1,18 +1,56 @@
 package bot;
 
 
-import convert.DXFConverter;
-import convert.Point;
+import bot.enums.InputCoordinatesType;
+import bot.enums.OutputFileType;
+import bot.enums.TransType;
+import convert.InfoReader;
 import dao.SelectDAO;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class Client {
 
     //номер где будет храниться предыдущий стейт клиента в случае ухода с основной ветки
     private int prevState;
+
+    TransType transType;
+
+
+    public TransType getTransType() {
+        return transType;
+    }
+
+    OutputFileType outputFileType;
+
+    InfoReader infoReader;
+
+    String transformationParametrs;
+
+    public String getTransformationParametrs() {
+        return transformationParametrs;
+    }
+
+    public void setTransformationParametrs(String transformationParametrs) {
+        this.transformationParametrs = transformationParametrs;
+    }
+
+    public OutputFileType getOutputFileType() {
+        return outputFileType;
+    }
+
+    public void setOutputFileType(OutputFileType outputFileType) {
+        this.outputFileType = outputFileType;
+    }
+
+    public void setInfoReader(InfoReader infoReader) {
+        this.infoReader = infoReader;
+    }
+
+    public InfoReader getInfoReader() {
+        return infoReader;
+    }
 
     public int getPrevState() {
         return prevState;
@@ -20,18 +58,6 @@ public class Client {
 
     public void setPrevState(int prevState) {
         this.prevState = prevState;
-    }
-
-    private LinkedList<Point> pointsFromFile;
-
-    private DXFConverter dxf;
-
-    public void setDxf(DXFConverter dxf) {
-        this.dxf = dxf;
-    }
-
-    public DXFConverter getDxf() {
-        return dxf;
     }
 
     private  String uploadPath;
@@ -73,16 +99,6 @@ public class Client {
 
     private ArrayList<File> files;
 
-    public int getTransformType() {
-        return transformType;
-    }
-
-    public void setTransformType(int transformType) {
-        this.transformType = transformType;
-    }
-
-    private int transformType;
-
     private long id;
 
     public ArrayList<File> getFiles() {
@@ -106,10 +122,6 @@ public class Client {
         uploadPath = "./src/main/resources/uploaded/" + "file_" + id;
         isClientReady = false;
         savePath = "./src/main/resources/send/" + id;
-    }
-
-    public void setPointsFromFile(LinkedList<Point> pointsFromFile) {
-        this.pointsFromFile = pointsFromFile;
     }
 
     public void setChoosedSK(String choosedSK) {
@@ -152,16 +164,12 @@ public class Client {
         return uploadPath;
     }
 
-    public LinkedList<Point> getPointsFromFile() {
-        return pointsFromFile;
-    }
 
     public  void    clean()
     {
         choosedSK = null;
         choosedType = null;
         choosedZone = null;
-        pointsFromFile = null;
     }
 
     public void setClientReady(Boolean clientReady) {
@@ -174,5 +182,41 @@ public class Client {
 
     public String getChoosedType() {
         return choosedType;
+    }
+
+    public void analizeTransformationType(String receive) {
+        if (infoReader.getInputCoordinatesType() == InputCoordinatesType.WGS)
+        {
+            if (receive.equals("GPX"))
+            {
+                transType = TransType.WGS_TO_WGS;
+                outputFileType = OutputFileType.GPX;
+            }
+            else if (receive.equals("KML"))
+            {
+                transType = TransType.WGS_TO_WGS;
+                outputFileType = OutputFileType.KML;
+            }
+            else if (receive.equals("CSV(плоская)"))
+            {
+                transType = TransType.WGS_TO_MSK;
+                outputFileType = OutputFileType.CSV;
+            }
+        }
+        else
+        {
+            if (receive.equals("GPX")) {
+                transType = TransType.MSK_TO_WGS;
+                outputFileType = OutputFileType.GPX;
+            }
+            else if (receive.equals("KML")) {
+                transType = TransType.MSK_TO_WGS;
+                outputFileType = OutputFileType.KML;
+            }
+            else if (receive.equals("CSV(плоская)")){
+                transType = TransType.MSK_TO_MSK;
+                outputFileType = OutputFileType.CSV;
+            }
+        }
     }
 }

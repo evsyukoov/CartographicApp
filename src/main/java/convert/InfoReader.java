@@ -1,5 +1,6 @@
 package convert;//import com.oracle.tools.packager.Log;
 //import jdk.internal.org.jline.utils.Log;
+import bot.enums.InputCoordinatesType;
 import com.github.fracpete.gpsformats4j.Convert;
 import com.github.fracpete.gpsformats4j.formats.CSV;
 import com.github.fracpete.gpsformats4j.formats.KML;
@@ -10,15 +11,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Converter
+public class InfoReader
 {
     private int transformType; //0 - из Плоской СК в WGS, 1 - из WGS
     private  File input;
     private File output;
+    private InputCoordinatesType inputCoordinatesType;
     private long    id;
     private String extension;
     String text;
@@ -30,7 +31,7 @@ public class Converter
 
     String kmlDIR;
 
-    public Converter(File file, long id, String extension) {
+    public InfoReader(File file, long id, String extension) {
         this.input = file;
         this.id = id;
         this.readedPoints = new LinkedList<Point>();
@@ -38,7 +39,11 @@ public class Converter
         transformType = 0;
     }
 
-    public Converter(String text) {
+    public InputCoordinatesType getInputCoordinatesType() {
+        return inputCoordinatesType;
+    }
+
+    public InfoReader(String text) {
         this.text = text;
         this.readedPoints = new LinkedList<Point>();
     }
@@ -62,6 +67,7 @@ public class Converter
                 return (0);
             flag = true;
         }
+        inputCoordinatesType = transformType == 0 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
         return (1);
     }
 
@@ -95,10 +101,11 @@ public class Converter
         } catch (IOException e) { ;
             return (-1);
         }
+        inputCoordinatesType = transformType == 0 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
         return (1);
     }
 
-    public Converter() {
+    public InfoReader() {
     }
 
     //смотрим какие координаты в текстовике: WGS-84 или плоские
