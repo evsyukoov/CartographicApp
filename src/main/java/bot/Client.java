@@ -17,6 +17,35 @@ public class Client {
 
     TransType transType;
 
+    String targetType;
+
+    String targetSk;
+
+    String targetZone;
+
+    public String getTargetType() {
+        return targetType;
+    }
+
+    public void setTargetType(String targetType) {
+        this.targetType = targetType;
+    }
+
+    public String getTargetSk() {
+        return targetSk;
+    }
+
+    public void setTargetSk(String targetSk) {
+        this.targetSk = targetSk;
+    }
+
+    public String getTargetZone() {
+        return targetZone;
+    }
+
+    public void setTargetZone(String targetZone) {
+        this.targetZone = targetZone;
+    }
 
     public TransType getTransType() {
         return transType;
@@ -27,6 +56,18 @@ public class Client {
     InfoReader infoReader;
 
     String transformationParametrs;
+
+    //параметры для перевода типа плоские в плоские
+
+    String secondTransformationParamters;
+
+    public String getSecondTransformationParamters() {
+        return secondTransformationParamters;
+    }
+
+    public void setSecondTransformationParamters(String secondTransformationParamters) {
+        this.secondTransformationParamters = secondTransformationParamters;
+    }
 
     public String getTransformationParametrs() {
         return transformationParametrs;
@@ -97,20 +138,20 @@ public class Client {
 
     private String choosedZone;
 
-    private ArrayList<File> files;
+    private File file;
 
     private long id;
 
-    public ArrayList<File> getFiles() {
-        return files;
+    public File getFile() {
+        return file;
     }
 
     public String getSavePath() {
         return savePath;
     }
 
-    public void setFiles(ArrayList<File> files) {
-        this.files = files;
+    public void setFile(File file) {
+        this.file = file;
     }
 
     private int         state;
@@ -132,7 +173,7 @@ public class Client {
         this.choosedType = choosedType;
     }
 
-    public void setGetChoosedZone(String choosedZone) {
+    public void setChoosedZone(String choosedZone) {
         this.choosedZone = choosedZone;
     }
 
@@ -197,7 +238,7 @@ public class Client {
                 transType = TransType.WGS_TO_WGS;
                 outputFileType = OutputFileType.KML;
             }
-            else if (receive.equals("CSV(плоская)"))
+            else if (receive.equals("CSV(плоские)"))
             {
                 transType = TransType.WGS_TO_MSK;
                 outputFileType = OutputFileType.CSV;
@@ -213,7 +254,12 @@ public class Client {
                 transType = TransType.MSK_TO_WGS;
                 outputFileType = OutputFileType.KML;
             }
-            else if (receive.equals("CSV(плоская)")){
+            else if (receive.equals("CSV(WGS-84)")){
+                transType = TransType.MSK_TO_WGS;
+                outputFileType = OutputFileType.CSV;
+            }
+            else if (receive.equals("CSV(плоские)"))
+            {
                 transType = TransType.MSK_TO_MSK;
                 outputFileType = OutputFileType.CSV;
             }

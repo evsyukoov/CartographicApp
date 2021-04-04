@@ -1,6 +1,8 @@
 package bot;
 
 import bot.enums.InputCoordinatesType;
+import bot.enums.TransType;
+import bot.outputgenerators.GeneratorManager;
 import convert.InfoReader;
 import convert.Transformator;
 import dao.SelectDAO;
@@ -84,7 +86,7 @@ public enum BotState {
                 }
                 next = CHOOSE_TYPE;
                 client.setInfoReader(c);
-                client.setExtension(".csv");
+                client.setExtension("csv");
                 client.setState(CHOOSE_TYPE.ordinal());
                 return ;
             }
@@ -131,22 +133,25 @@ public enum BotState {
         public void writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
             buttons = new ArrayList<>();
-            if (client.getExtension().equals("csv") && client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS) {
-                sm.setText("Выберите формат выходного файла");
+            sm.setText("Выберите формат выходного файла");
+            buttons.add("GPX");
+            buttons.add("KML");
+
+            if (client.getExtension().equals("csv") && client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS)
                 buttons.add("CSV(плоские)");
-                buttons.add("GPX");
-                buttons.add("KML");
-                setButtons(sm, buttons);
-                sendMessage(botContext, sm);
+            else if (client.getExtension().equals("csv") && client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.MSK) {
+                buttons.add("CSV(плоские)");
+                buttons.add("CSV(WGS-84)");
             }
+            setButtons(sm, buttons);
+            sendMessage(botContext, sm);
         }
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
             next = readClientChoice(botContext, client, FILE, CHOOSE_TYPE, "Неверный формат выходного файла\n" +
                     "Выберите формат выходного файла", buttons);
-            if (next.compareTo(CHOOSE_OUTPUT_FILE_OPTION) > 0)
-                client.analizeTransformationType(botContext.getMessage().getText());
+            client.analizeTransformationType(botContext.getMessage().getText());
         }
 
         @Override
@@ -167,7 +172,7 @@ public enum BotState {
                 sd.selectTypes();
                 sd.closeConnection();
                 SendMessage sm = new SendMessage();
-                sm.setText("Выберите тип СК");
+                sm.setText("Выберите тип СК исходного файла");
                 setButtons(sm, sd.getTypes());
                 sendMessage(botContext,sm);
                 client.setState(CHOOSE_TYPE.ordinal());
@@ -180,7 +185,7 @@ public enum BotState {
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
-            next = readClientChoice(botContext, client, FILE, CHOOSE_SK,
+            next = readClientChoice(botContext, client, CHOOSE_OUTPUT_FILE_OPTION, CHOOSE_SK,
                     "Неверно выбран тип  CК\nВыберите тип СК", client.getSd().getTypes());
         }
 
@@ -201,7 +206,7 @@ public enum BotState {
                 sd.selectSK(client.getChoosedType());
                 sd.closeConnection();
                 SendMessage sm = new SendMessage();
-                sm.setText("Выберите регион(район)");
+                sm.setText("Выберите регион(район) исходного файла");
                 setButtons(sm, client.getSd().getSk());
                 sendMessage(botContext, sm);
                 client.setState(CHOOSE_SK.ordinal());
@@ -214,7 +219,7 @@ public enum BotState {
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
-           next = readClientChoice(botContext, client, CHOOSE_OUTPUT_FILE_OPTION,
+           next = readClientChoice(botContext, client, CHOOSE_TYPE,
                    CHOOSE_ZONE, "Неверно выбран регион(район)\nВыберите регион(район)",
                    client.getSd().getSk());
         }
@@ -237,9 +242,10 @@ public enum BotState {
                 sd.selectZone(client.getChoosedSK());
                 sd.closeConnection();
                 SendMessage sm = new SendMessage();
-                sm.setText("Выберите зону");
+                sm.setText("Выберите зону исходного файла");
                 setButtons(sm, sd.getZones());
                 sendMessage(botContext, sm);
+                client.setState(CHOOSE_ZONE.ordinal());
             }
             catch (SQLException e)
             {
@@ -249,58 +255,8 @@ public enum BotState {
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
-            next = null;
-            if (checkStop(botContext, client)) {
-                next = FILE;
-                return;
-            }
-            try {
-                SelectDAO sd = client.getSd();
-                System.out.printf("Type: %s, SK: %s \n", client.getChoosedType(), client.getChoosedSK());
-                String recieve = botContext.getMessage().getText();
-                System.out.println(recieve);
-                if (recieve == null || (!sd.getZones().contains(recieve) &&
-                        !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
-                    next = ERROR;
-                    client.setErrorMSG("Неверно выбрана зона\nВыберите зону");
-                 }
-                 else
-                 {
-                     if (recieve.equals("Помощь"))
-                     {
-                         client.setPrevState(CHOOSE_ZONE.ordinal());
-                         client.setState(HELP.ordinal());
-                         next = HELP;
-                     }
-                     else if (recieve.equals("Назад"))
-                     {
-                         next = CHOOSE_SK;
-                         client.setState(CHOOSE_SK.ordinal());
-                     }
-                     else
-                     {
-                         next = EXECUTE;
-                         sd.startConnection();
-                         sd.selectParam(client.getChoosedType(), client.getChoosedSK(), recieve);
-                         sd.closeConnection();
-                         client.setTransformationParametrs(sd.getParam());
-                         Transformator transformator;
-                         if (client.getInfoReader().getFromDXF() != null)
-                             transformator = new Transformator(sd.getParam(), client.getDxf(),client.getSavePath(), client.getTransformType());
-                         else
-                            transformator = new Transformator(sd.getParam(), client.getPointsFromFile(),client.getSavePath(), client.getTransformType());
-                         if (transformator.transform() == 0) {
-                             client.setErrorMSG("Ошибка трансформации");
-                             next = TRANSFORM_ERROR;
-                             client.setState(FILE.ordinal());
-                         }
-                         client.setFiles(transformator.getFiles());
-                     }
-                 }
-            }
-            catch (SQLException e) {
-                e.printStackTrace();
-            }
+            next = readClientChoice(botContext, client, CHOOSE_SK, EXECUTE, "Неверно выбрана зона\nВыберите зону", client.getSd().getZones());
+            client.setTransformationParametrs(client.getSd().getParam());
         }
 
 
@@ -310,16 +266,147 @@ public enum BotState {
         }
     },
 
+    // 3 дополнительных стейта для случая если пользователь хочет перейти из плоской СК в другую плоскую СК
+    // нужно сначала выбрать СК исходного файла, а затем СК результата
+
+     CHOOSE_TYPE_TGT {
+        BotState next;
+
+         @Override
+         public void writeToClient(BotContext botContext, Client client) {
+             try {
+                 SelectDAO sd = new SelectDAO();
+                 sd.startConnection();
+                 client.setSd(sd);
+                 sd.selectTypes();
+                 sd.closeConnection();
+                 SendMessage sm = new SendMessage();
+                 sm.setText("Выберите тип СК результирующего файла");
+                 setButtons(sm, sd.getTypes());
+                 sendMessage(botContext,sm);
+                 client.setState(CHOOSE_TYPE_TGT.ordinal());
+             }
+             catch (SQLException e)
+             {
+                 e.printStackTrace();
+             }
+         }
+
+         @Override
+         public void readFromClient(BotContext botContext, Client client) {
+             next = readClientChoice(botContext, client, CHOOSE_ZONE, CHOOSE_SK_TARGET,
+                     "Неверно выбран тип  CК\nВыберите тип СК", client.getSd().getTypes());
+         }
+
+         @Override
+         public BotState next(BotContext botContext) {
+             return next;
+         }
+     },
+
+    CHOOSE_SK_TARGET {
+        BotState next;
+
+        @Override
+        public void writeToClient(BotContext botContext, Client client) {
+            try {
+                SelectDAO sd = client.getSd();
+                sd.startConnection();
+                sd.selectSK(client.getChoosedType());
+                sd.closeConnection();
+                SendMessage sm = new SendMessage();
+                sm.setText("Выберите регион(район) результирующего файла");
+                setButtons(sm, client.getSd().getSk());
+                sendMessage(botContext, sm);
+                client.setState(CHOOSE_SK_TARGET.ordinal());
+            }
+            catch (SQLException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void readFromClient(BotContext botContext, Client client) {
+            next = readClientChoice(botContext, client, CHOOSE_TYPE_TGT, CHOOSE_ZONE_TARGET,
+                    "Неверно выбран регион(район)\nВыберите тип СК", client.getSd().getSk());
+        }
+
+        @Override
+        public BotState next(BotContext botContext) {
+            return next;
+        }
+    },
+
+    CHOOSE_ZONE_TARGET {
+        BotState next;
+
+        @Override
+        public void writeToClient(BotContext botContext, Client client) {
+            try {
+                SelectDAO sd = client.getSd();
+                sd.startConnection();
+                sd.selectZone(client.getChoosedSK());
+                sd.closeConnection();
+                SendMessage sm = new SendMessage();
+                sm.setText("Выберите зону результирующего файла");
+                setButtons(sm, sd.getZones());
+                sendMessage(botContext, sm);
+                client.setState(CHOOSE_ZONE_TARGET.ordinal());
+            }
+            catch (SQLException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void readFromClient(BotContext botContext, Client client) {
+            next = readClientChoice(botContext, client, CHOOSE_SK_TARGET, EXECUTE,
+                    "Неверно выбрана зона\nВыберите зону", client.getSd().getZones());
+        }
+
+        @Override
+        public BotState next(BotContext botContext) {
+            return next;
+        }
+    },
+
+
     //последний  стейт если все хорошо
     EXECUTE {
-        @Override public void writeToClient(BotContext botContext, Client client) {
-            for(int i = 0;i < client.getFiles().size(); i++)
-                sendFile(botContext, client.getFiles().get(i));
-            client.setClientReady(true);
-            SendMessage sm = new SendMessage();
-            sm.setText("Отправьте файл или текст с координатами");
-            setHelper(sm, "Помощь");
-            sendMessage(botContext, sm);
+        BotState next;
+        @Override
+        public void writeToClient(BotContext botContext, Client client) {
+            SelectDAO sd = client.getSd();
+            try {
+                sd.startConnection();
+                sd.selectParam(client.getChoosedType(), client.getChoosedSK(), client.getChoosedZone());
+                client.setTransformationParametrs(sd.getParam());
+                if (client.getTransType() == TransType.MSK_TO_MSK)
+                {
+                    sd.selectParam(client.getTargetType(), client.getTargetSk(), client.getTargetZone());
+                    client.setSecondTransformationParamters(sd.getParam());
+                }
+            }
+            catch (SQLException e)
+            {
+                e.printStackTrace();
+            }
+            GeneratorManager gm = new GeneratorManager(client);
+            if (gm.run() == 0) {
+                client.setErrorMSG("Ошибка трансформации");
+                next = TRANSFORM_ERROR;
+                client.setState(FILE.ordinal());
+            }
+            else {
+                sendFile(botContext, gm.getOutput());
+                client.setClientReady(true);
+                SendMessage sm = new SendMessage();
+                sm.setText("Отправьте файл или текст с координатами");
+                setHelper(sm, "Помощь");
+                sendMessage(botContext, sm);
+            }
         }
 
         @Override
@@ -331,7 +418,6 @@ public enum BotState {
         }
         },
 
-    //6
     ERROR {
         @Override
         public void writeToClient(BotContext botContext, Client client) {
@@ -563,7 +649,7 @@ public enum BotState {
     }
 
     public  BotState readClientChoice(BotContext botContext, Client client,
-                                      BotState back, BotState next, String error, ArrayList<String> checkList)
+                                      BotState back, BotState next, String error, List<String> checkList)
     {
         BotState res;
         if (checkStop(botContext, client)) {
@@ -599,13 +685,16 @@ public enum BotState {
         BotState res = nxt;
         if (client.getState() == CHOOSE_OUTPUT_FILE_OPTION.ordinal())
         {
-            // вообще пропускаем трансформацию
+            // вообще пропускаем выбор системы координат
             if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS && (receive.equals("GPX")
             || receive.equals("KML")))
             {
-                 client.setState(CHOOSE_ZONE.ordinal());
-                 res = CHOOSE_ZONE;
+                 client.setState(EXECUTE.ordinal());
+                 res = EXECUTE;
             }
+            else if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.MSK &&
+                    (receive.equals("KML") || receive.equals("GPX") || receive.equals("CSV(WGS)")))
+                client.setState(nxt.ordinal());
         }
         else if (client.getState() == CHOOSE_SK.ordinal()) {
             client.setState(nxt.ordinal());
@@ -615,6 +704,33 @@ public enum BotState {
         {
             client.setState(nxt.ordinal());
             client.setChoosedType(receive);
+        }
+        // тут смотрим какой тип преобразования и либо завершаем стейты либо спрашиваем вторую систему координат
+        else if (client.getState() == CHOOSE_ZONE.ordinal())
+        {
+            if (client.getTransType() != TransType.MSK_TO_MSK)
+                client.setState(EXECUTE.ordinal());
+            else
+            {
+                client.setState(CHOOSE_TYPE_TGT.ordinal());
+                res = CHOOSE_TYPE_TGT;
+            }
+            client.setChoosedZone(receive);
+        }
+        else if (client.getState() == CHOOSE_TYPE_TGT.ordinal())
+        {
+            client.setState(nxt.ordinal());
+            client.setTargetType(receive);
+        }
+        else if (client.getState() == CHOOSE_SK_TARGET.ordinal())
+        {
+            client.setState(nxt.ordinal());
+            client.setTargetSk(receive);
+        }
+        else if (client.getState() == CHOOSE_ZONE_TARGET.ordinal())
+        {
+            client.setState(EXECUTE.ordinal());
+            client.setTargetZone(receive);
         }
         return res;
     }

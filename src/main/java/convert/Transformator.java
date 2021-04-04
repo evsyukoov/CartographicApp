@@ -1,6 +1,8 @@
 package convert;//import com.sun.deploy.security.SelectableSecurityManager;
 //import com.sun.javafx.tools.packager.Log;
 //import jdk.internal.org.jline.utils.Log;
+import bot.Client;
+import bot.enums.InputCoordinatesType;
 import org.osgeo.proj4j.*;
 
 import java.io.*;
@@ -12,8 +14,11 @@ import java.util.LinkedList;
 public class Transformator {
     private String params;
     private CoordinateTransform         transformation;
+    private CoordinateTransform         extraTransformation;
     private String outputFileName;
     private int transformType;
+
+      Client client;
 
     private DXFConverter dxf;
 
@@ -32,6 +37,10 @@ public class Transformator {
 
     public Transformator(String params) {
         this.params = params;
+    }
+
+    public Transformator(Client client) {
+        this.client = client;
     }
 
     public Transformator(String params, LinkedList<Point> input, String outputFileName, int transformType) {
@@ -191,16 +200,26 @@ public class Transformator {
         CRSFactory factory = new CRSFactory();
         CoordinateReferenceSystem src;
         CoordinateReferenceSystem target;
-        if (transformType == 0) {
-                src = factory.createFromParameters(null, params);
+        if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.MSK) {
+                src = factory.createFromParameters(null, client.getTransformationParametrs());
                 target = factory.createFromName(WGS84);
         }
         else {
-            target = factory.createFromParameters(null, params);
             src = factory.createFromName(WGS84);
+            target = factory.createFromParameters(null, client.getTransformationParametrs());
         }
        transformation = new CoordinateTransformFactory().createTransform(src, target);
         return (1);
+    }
+
+    public void     initExtraTransformation() throws Proj4jException
+    {
+        CRSFactory factory = new CRSFactory();
+        CoordinateReferenceSystem src;
+        CoordinateReferenceSystem target;
+        src = factory.createFromName(WGS84);
+        target = factory.createFromParameters(null, client.getSecondTransformationParamters());
+        extraTransformation = new CoordinateTransformFactory().createTransform(src, target);
     }
 
     public     Point    transformOnePoint(Point point) throws Proj4jException
@@ -213,6 +232,18 @@ public class Transformator {
         tgt = new Point(point.name, result.y, result.x);
         return (tgt);
     }
+
+    public  Point       twoStepTransform(Point point) throws Proj4jException, IllegalStateException
+    {
+        ProjCoordinate middwareResult = new ProjCoordinate();
+        ProjCoordinate result = new ProjCoordinate();
+        ProjCoordinate src = new ProjCoordinate(point.y, point.x);;
+        transformation.transform(src, middwareResult);
+        //System.out.printf("%s %f %f\n", middwareResult.y, middwareResult.x);
+        extraTransformation.transform(middwareResult, result);
+        return new Point(point.name, result.x, result.y);
+    }
+
 
     public ArrayList<File> getFiles() {
         return files;

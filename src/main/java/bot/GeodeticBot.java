@@ -24,7 +24,7 @@ import java.util.*;
 public class GeodeticBot extends TelegramLongPollingBot {
 
     private static DAO dao;
-    final String token = "";
+    final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
     private DefaultBotOptions options;
     private final String botName = "SurveyGeoBot";
 

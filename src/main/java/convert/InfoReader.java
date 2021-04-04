@@ -67,7 +67,7 @@ public class InfoReader
                 return (0);
             flag = true;
         }
-        inputCoordinatesType = transformType == 0 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
+        inputCoordinatesType = transformType == 1 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
         return (1);
     }
 
@@ -101,7 +101,7 @@ public class InfoReader
         } catch (IOException e) { ;
             return (-1);
         }
-        inputCoordinatesType = transformType == 0 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
+        inputCoordinatesType = transformType == 1 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
         return (1);
     }
 
@@ -244,7 +244,7 @@ public class InfoReader
         }
         else if (extension.equalsIgnoreCase("kml"))
         {
-            transformType = 1;
+            inputCoordinatesType = InputCoordinatesType.WGS;
             kmlDIR = "./src/main/resources/uploaded/" + id + "/";
             if (createTmpDirectory() == 0)
                 return (-1);
@@ -259,13 +259,13 @@ public class InfoReader
                 return (-1);
             int ret = readFromKMZ();
             input.delete();
-            transformType = 1;
+            inputCoordinatesType = InputCoordinatesType.WGS;
             return (ret);
         }
         else if (extension.equalsIgnoreCase("dxf"))
         {
             isDxf = true;
-            transformType = 0;
+            inputCoordinatesType = InputCoordinatesType.MSK;
             DXFConverter fromDXF = new DXFConverter(input.getAbsolutePath());
             int ret = fromDXF.parseDXF();
             this.fromDXF = fromDXF;
