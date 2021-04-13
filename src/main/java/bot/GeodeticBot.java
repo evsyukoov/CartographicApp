@@ -9,24 +9,20 @@ import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 
-import org.telegram.telegrambots.meta.ApiContext;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.objects.Chat;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
-import java.net.Authenticator;
-import java.net.PasswordAuthentication;
 import java.sql.SQLException;
 import java.util.*;
 
 public class GeodeticBot extends TelegramLongPollingBot {
 
     private static DAO dao;
-    final String token = "";
+    final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
     private DefaultBotOptions options;
-    private final String botName = "";
+    private final String botName = "SurveyGeoBot";
 
     public GeodeticBot(DefaultBotOptions options) {
         super(options);
