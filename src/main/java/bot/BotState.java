@@ -4,6 +4,7 @@ import convert.Converter;
 import convert.Transformator;
 import dao.SelectDAO;
 import org.json.JSONObject;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
@@ -28,11 +29,12 @@ public enum BotState {
         private static final String HELLO = "Отправьте файл или текст с координатами";
 
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             sm.setText(HELLO);
             setHelper(sm, "Помощь");
-            sendMessage(botContext, sm);
+            return sm;
         }
 
         @Override
@@ -49,12 +51,13 @@ public enum BotState {
         private BotState next;
 
         @Override
-        public void writeToClient(BotContext botContext, Client client)
+        public BotApiMethod writeToClient(BotContext botContext, Client client)
         {
             SendMessage msg = new SendMessage();
+            msg.setChatId(client.getId());
             msg.setText("Отправьте файл или текст с координатами");
             setHelper(msg, "Помощь");
-            sendMessage(botContext, msg);
+            return msg;
         }
 
         @Override
@@ -132,23 +135,26 @@ public enum BotState {
         private BotState next;
 
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
+            SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             try {
                 SelectDAO sd = new SelectDAO();
                 sd.startConnection();
                 client.setSd(sd);
                 sd.selectTypes();
                 sd.closeConnection();
-                SendMessage sm = new SendMessage();
                 sm.setText("Выберите тип СК");
                 setButtons(sm, sd.getTypes());
-                sendMessage(botContext,sm);
+                //sendMessage(botContext,sm);
                 client.setState(CHOOSE_TYPE.ordinal());
             }
             catch (SQLException e)
             {
                 e.printStackTrace();
+                return sm.setText("Проблемы на сервере");
             }
+            return sm;
         }
 
         @Override
@@ -192,22 +198,25 @@ public enum BotState {
         private BotState next;
 
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
+            SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             try {
                 SelectDAO sd = client.getSd();
                 sd.startConnection();
                 sd.selectSK(client.getChoosedType());
                 sd.closeConnection();
-                SendMessage sm = new SendMessage();
                 sm.setText("Выберите регион(район)");
                 setButtons(sm, client.getSd().getSk());
-                sendMessage(botContext, sm);
+                //sendMessage(botContext, sm);
                 client.setState(CHOOSE_SK.ordinal());
             }
             catch (SQLException e)
             {
                 e.printStackTrace();
+                return sm.setText("Проблемы на сервере, попробуйте позднее");
             }
+            return sm;
         }
 
         @Override
@@ -257,21 +266,24 @@ public enum BotState {
         BotState next;
 
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
+            SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             try {
                 SelectDAO sd = client.getSd();
                 sd.startConnection();
                 sd.selectZone(client.getChoosedSK());
                 sd.closeConnection();
-                SendMessage sm = new SendMessage();
                 sm.setText("Выберите зону");
                 setButtons(sm, sd.getZones());
-                sendMessage(botContext, sm);
+                //sendMessage(botContext, sm);
             }
             catch (SQLException e)
             {
                 e.printStackTrace();
+                return sm.setText("Проблемы на сервере, попробуйте позднее");
             }
+            return sm;
         }
 
         @Override
@@ -338,7 +350,7 @@ public enum BotState {
 
     //последний  стейт если все хорошо
     EXECUTE {
-        @Override public void writeToClient(BotContext botContext, Client client) {
+        @Override public BotApiMethod writeToClient(BotContext botContext, Client client) {
             for(int i = 0;i < client.getFiles().size(); i++)
                 sendFile(botContext, client.getFiles().get(i));
             client.setClientReady(true);
@@ -346,6 +358,7 @@ public enum BotState {
             sm.setText("Отправьте файл или текст с координатами");
             setHelper(sm, "Помощь");
             sendMessage(botContext, sm);
+            return null;
         }
 
         @Override
@@ -360,10 +373,12 @@ public enum BotState {
     //6
     ERROR {
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             sm.setText(client.getErrorMSG());
-            sendMessage(botContext, sm);
+           // sendMessage(botContext, sm);
+            return sm;
         }
 
         @Override
@@ -378,13 +393,15 @@ public enum BotState {
     //7
     TRANSFORM_ERROR {
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             sm.setText(client.getErrorMSG());
             sendMessage(botContext, sm);
             sm.setText("Отправьте файл или текст с координатами");
             setHelper(sm, "Помощь");
-            sendMessage(botContext, sm);
+            //sendMessage(botContext, sm);
+            return sm;
         }
 
         @Override
@@ -407,11 +424,13 @@ public enum BotState {
                                             "Добавлена поддержка dxf. Из чертежа вытягиваются все блоки и полилилинии\n" +
                                             "В качестве имени точки берется первое непустое значение атрибута блока";
         @Override
-        public void writeToClient(BotContext botContext, Client client) {
+        public BotApiMethod writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             sm.setText(HELPER);
             setHelper(sm, "Назад");
             sendMessage(botContext, sm);
+            return sm;
         }
 
         @Override
@@ -451,7 +470,7 @@ public enum BotState {
 
 
 
-    public abstract void writeToClient(BotContext botContext, Client client);
+    public abstract BotApiMethod writeToClient(BotContext botContext, Client client);
 
     public abstract void readFromClient(BotContext botContext, Client client);
 

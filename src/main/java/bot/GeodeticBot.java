@@ -4,20 +4,29 @@ import dao.ClientDAO;
 import dao.DAO;
 import dao.DownloadDAO;
 
+import org.apache.tomcat.util.net.AprEndpoint;
 import org.telegram.telegrambots.ApiContextInitializer;
 
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 
+import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import org.telegram.telegrambots.meta.generics.WebhookBot;
+import org.telegram.telegrambots.util.WebhookUtils;
 
 import java.sql.SQLException;
 import java.util.*;
 
-public class GeodeticBot extends TelegramLongPollingBot {
+public class GeodeticBot extends TelegramWebhookBot {
 
     private static DAO dao;
     final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
@@ -29,6 +38,17 @@ public class GeodeticBot extends TelegramLongPollingBot {
     }
 
     public GeodeticBot() {
+        TelegramBotsApi botsApi = new TelegramBotsApi();
+        ApiContextInitializer.init();
+        dao = new DAO();
+        dao.register();
+        clients = new LinkedList<Client>();
+        System.out.println("Server start!");
+        try {
+            botsApi.registerBot(new GeodeticBot());
+        } catch (TelegramApiRequestException e) {
+            e.printStackTrace();
+        }
     }
 
     public static LinkedList<Client> clients;
@@ -42,10 +62,22 @@ public class GeodeticBot extends TelegramLongPollingBot {
         return null;
     }
 
+//    @Override
+//    public BotApiMethod onWebhookUpdateReceived(Update update) {
+//        System.out.println(update.getMessage());
+//        return new SendMessage(update.getMessage().getChatId(), "Hello from webhook");
+//    }
+
     @Override
-    public void onUpdateReceived(Update update) {
+    public String getBotPath() {
+        return null;
+    }
+
+        @Override
+    public BotApiMethod onWebhookUpdateReceived(Update update) {
         BotState bs;
-        Client client;
+        Client client = null;
+        BotApiMethod content = null;
         if (update.getMessage() != null &&
                 (update.getMessage().getDocument() != null || update.getMessage().getText() != null))
         {
@@ -68,7 +100,7 @@ public class GeodeticBot extends TelegramLongPollingBot {
                 bs = BotState.getStatement(client.getState());
                 bs.readFromClient(botContext, client);
                 bs = bs.next(botContext);
-                bs.writeToClient(botContext, client);
+                content = bs.writeToClient(botContext, client);
                 if (client.getClientReady())
                 {
                     clients.remove(client);
@@ -77,9 +109,14 @@ public class GeodeticBot extends TelegramLongPollingBot {
             } catch (SQLException throwables) {
                 System.out.println("MySQL Exception");
                 throwables.printStackTrace();
+                SendMessage error = new SendMessage();
+                error.setChatId(client.getId());
+                error.setText("Проблемы на сервере, попробуйте позднее");
+                return error;
             }
 
         }
+        return content == null ? new SendMessage(client.getId(), "") : content;
     }
 
     @Override
@@ -114,5 +151,6 @@ public class GeodeticBot extends TelegramLongPollingBot {
         } catch (TelegramApiRequestException e) {
             e.printStackTrace();
         }
+        //while (true);
     }
 }

@@ -9,5 +9,11 @@
         <module name="TransformBot" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="8" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="TransformBot" options="" />
+    </option>
   </component>
 </project>

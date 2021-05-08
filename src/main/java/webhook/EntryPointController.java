@@ -1,16 +1,29 @@
 package webhook;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import bot.GeodeticBot;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
+
 
 @RestController
-@RequestMapping("/endpoint")
 public class EntryPointController {
 
-    @GetMapping
-    public Object API() {
-        System.out.println("Hello World");
-        return "azazazaz";
+    GeodeticBot geodeticBot;
+
+    public EntryPointController(GeodeticBot geodeticBot) {
+        this.geodeticBot = geodeticBot;
     }
-}
+
+    @RequestMapping(path = "/", method = RequestMethod.GET)
+    public Object Test()
+    {
+        return "Server working on 8443\n";
+    }
+
+    @RequestMapping(value = "/", method = RequestMethod.POST)
+    public BotApiMethod API(@RequestBody Update update) {
+        return geodeticBot.onWebhookUpdateReceived(update);
+    }}
