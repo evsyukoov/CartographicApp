@@ -5,9 +5,13 @@ import convert.Transformator;
 import dao.SelectDAO;
 import org.json.JSONObject;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -31,8 +35,7 @@ public enum BotState {
         @Override
         public BotApiMethod writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
-            sm.setChatId(client.getId());
-            sm.setText(HELLO);
+            setMessage(sm, HELLO, client);
             setHelper(sm, "Помощь");
             return sm;
         }
@@ -54,8 +57,7 @@ public enum BotState {
         public BotApiMethod writeToClient(BotContext botContext, Client client)
         {
             SendMessage msg = new SendMessage();
-            msg.setChatId(client.getId());
-            msg.setText("Отправьте файл или текст с координатами");
+            setMessage(msg, "Отправьте файл или текст с координатами", client);
             setHelper(msg, "Помощь");
             return msg;
         }
@@ -351,14 +353,15 @@ public enum BotState {
     //последний  стейт если все хорошо
     EXECUTE {
         @Override public BotApiMethod writeToClient(BotContext botContext, Client client) {
+
             for(int i = 0;i < client.getFiles().size(); i++)
                 sendFile(botContext, client.getFiles().get(i));
             client.setClientReady(true);
             SendMessage sm = new SendMessage();
+            sm.setChatId(client.getId());
             sm.setText("Отправьте файл или текст с координатами");
             setHelper(sm, "Помощь");
-            sendMessage(botContext, sm);
-            return null;
+            return sm;
         }
 
         @Override
@@ -397,7 +400,7 @@ public enum BotState {
             SendMessage sm = new SendMessage();
             sm.setChatId(client.getId());
             sm.setText(client.getErrorMSG());
-            sendMessage(botContext, sm);
+            //sendMessage(botContext, sm);
             sm.setText("Отправьте файл или текст с координатами");
             setHelper(sm, "Помощь");
             //sendMessage(botContext, sm);
@@ -429,7 +432,7 @@ public enum BotState {
             sm.setChatId(client.getId());
             sm.setText(HELPER);
             setHelper(sm, "Назад");
-            sendMessage(botContext, sm);
+            //sendMessage(botContext, sm);
             return sm;
         }
 
@@ -479,7 +482,8 @@ public enum BotState {
     public  Boolean checkStop(BotContext botContext, Client client)
     {
         String msg = botContext.getMessage().getText();
-        if (msg != null && (msg.equals("/stop") || botContext.getMessage().getText().equals("/start")))
+        if (msg != null && (msg.equals("/stop")
+                || botContext.getMessage().getText().equals("/start")))
         {
             client.setState(1);
             return true;
@@ -498,16 +502,10 @@ public enum BotState {
         }
     }
 
-    public int sendMessage(BotContext botContext, SendMessage sm)
+    public void setMessage(SendMessage sm, String text, Client client)
     {
-        sm.setChatId(botContext.getMessage().getChat().getId());
-        try {
-            botContext.getBot().execute(sm);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-            return (0);
-        }
-        return (1);
+        sm.setChatId(client.getId());
+        sm.setText(text);
     }
 
     private void    findExtension(String path, Client client)
