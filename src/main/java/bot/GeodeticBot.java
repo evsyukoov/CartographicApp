@@ -38,17 +38,9 @@ public class GeodeticBot extends TelegramWebhookBot {
     }
 
     public GeodeticBot() {
-        TelegramBotsApi botsApi = new TelegramBotsApi();
-        ApiContextInitializer.init();
         dao = new DAO();
         dao.register();
         clients = new LinkedList<Client>();
-        System.out.println("Server start!");
-        try {
-            botsApi.registerBot(new GeodeticBot());
-        } catch (TelegramApiRequestException e) {
-            e.printStackTrace();
-        }
     }
 
     public static LinkedList<Client> clients;
@@ -116,7 +108,7 @@ public class GeodeticBot extends TelegramWebhookBot {
             }
 
         }
-        return content == null ? new SendMessage(client.getId(), "") : content;
+        return content;
     }
 
     @Override

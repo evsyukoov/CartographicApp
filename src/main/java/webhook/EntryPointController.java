@@ -13,8 +13,8 @@ public class EntryPointController {
 
     GeodeticBot geodeticBot;
 
-    public EntryPointController(GeodeticBot geodeticBot) {
-        this.geodeticBot = geodeticBot;
+    public EntryPointController() {
+       geodeticBot = new GeodeticBot();
     }
 
     @RequestMapping(path = "/", method = RequestMethod.GET)
