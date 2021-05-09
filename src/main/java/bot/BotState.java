@@ -1,25 +1,19 @@
 package bot;
 
-import controller.WebHookServer;
 import convert.Converter;
 import convert.Transformator;
 import dao.SelectDAO;
 import org.json.JSONObject;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
-import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -400,11 +394,8 @@ public enum BotState {
         public BotApiMethod writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
             sm.setChatId(client.getId());
-            sm.setText(client.getErrorMSG());
-            //sendMessage(botContext, sm);
-            sm.setText("Отправьте файл или текст с координатами");
+            sm.setText(String.format("%s\nОтправьте файл или текст с координатами", client.getErrorMSG()));
             setHelper(sm, "Помощь");
-            //sendMessage(botContext, sm);
             return sm;
         }
 
