@@ -1,10 +1,8 @@
-package webhook;
+package controller;
 
 import bot.GeodeticBot;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 
@@ -15,12 +13,6 @@ public class EntryPointController {
 
     public EntryPointController() {
        geodeticBot = new GeodeticBot();
-    }
-
-    @RequestMapping(path = "/", method = RequestMethod.GET)
-    public Object Test()
-    {
-        return "Server working on 8443\n";
     }
 
     @RequestMapping(value = "/", method = RequestMethod.POST)

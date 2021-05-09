@@ -89,7 +89,6 @@ public class Transformator {
         files.add(f1);
         try {
             Writer csv = new OutputStreamWriter(new FileOutputStream(f1), "Windows-1251");
-            //System.out.println(input);
             for (Point point : input)
             {
                 if ((p = transformOnePoint(point)) != null)

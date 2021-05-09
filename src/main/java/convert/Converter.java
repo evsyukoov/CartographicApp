@@ -1,5 +1,5 @@
 package convert;//import com.oracle.tools.packager.Log;
-//import jdk.internal.org.jline.utils.Log;
+
 import com.github.fracpete.gpsformats4j.Convert;
 import com.github.fracpete.gpsformats4j.formats.CSV;
 import com.github.fracpete.gpsformats4j.formats.KML;
@@ -262,7 +262,7 @@ public class Converter
             DXFConverter fromDXF = new DXFConverter(input.getAbsolutePath());
             int ret = fromDXF.parseDXF();
             this.fromDXF = fromDXF;
-            fromDXF.print();
+            //fromDXF.print();
             input.delete();
             return ret;
         }

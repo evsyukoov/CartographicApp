@@ -25,8 +25,12 @@ import org.telegram.telegrambots.util.WebhookUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class GeodeticBot extends TelegramWebhookBot {
+
+    private static final java.util.logging.Logger logger = Logger.getLogger(BotState.class.getName());
 
     private static DAO dao;
     final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
@@ -54,12 +58,6 @@ public class GeodeticBot extends TelegramWebhookBot {
         return null;
     }
 
-//    @Override
-//    public BotApiMethod onWebhookUpdateReceived(Update update) {
-//        System.out.println(update.getMessage());
-//        return new SendMessage(update.getMessage().getChatId(), "Hello from webhook");
-//    }
-
     @Override
     public String getBotPath() {
         return null;
@@ -83,12 +81,14 @@ public class GeodeticBot extends TelegramWebhookBot {
                     ClientDAO cd = new ClientDAO(id, chat.getFirstName(), chat.getLastName(), chat.getUserName());
                     cd.startConnection();
                     client = new Client(id);
+                    client.setName(chat.getFirstName() + (chat.getLastName() == null ? "" : chat.getLastName()));
                     cd.addToDataBase();
                     cd.closeConnection();
                     clients.add(client);
                     client.setState(1);
                 }
-                System.out.printf("Client state: %d\n", client.getState());
+                logger.log(Level.INFO, String.format("Client %s's state is %d\n",
+                        client.getName(), client.getState()));
                 bs = BotState.getStatement(client.getState());
                 bs.readFromClient(botContext, client);
                 bs = bs.next(botContext);
@@ -96,11 +96,11 @@ public class GeodeticBot extends TelegramWebhookBot {
                 if (client.getClientReady())
                 {
                     clients.remove(client);
-                    System.out.println("Client delete!");
+                    logger.log(Level.INFO, String.format("Client %s's delete from Active List\n",
+                          client.getName()));
                 }
             } catch (SQLException throwables) {
-                System.out.println("MySQL Exception");
-                throwables.printStackTrace();
+                logger.log(Level.SEVERE, "MySQL Exception");
                 SendMessage error = new SendMessage();
                 error.setChatId(client.getId());
                 error.setText("Проблемы на сервере, попробуйте позднее");
@@ -121,28 +121,4 @@ public class GeodeticBot extends TelegramWebhookBot {
         return token;
     }
 
-
-
-    public static void preDownload() throws SQLException
-    {
-        DownloadDAO dao = new DownloadDAO();
-        dao.startConnection();
-        dao.startDownload();
-        dao.closeConnection();
-    }
-
-    public static void main(String[] args){
-        TelegramBotsApi botsApi = new TelegramBotsApi();
-        ApiContextInitializer.init();
-        dao = new DAO();
-        dao.register();
-        clients = new LinkedList<Client>();
-        System.out.println("Server start!");
-        try {
-            botsApi.registerBot(new GeodeticBot());
-        } catch (TelegramApiRequestException e) {
-            e.printStackTrace();
-        }
-        //while (true);
-    }
 }

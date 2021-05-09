@@ -2,9 +2,9 @@
 <project version="4">
   <component name="RemoteRepositoriesConfiguration">
     <remote-repository>
-      <option name="id" value="localrep" />
-      <option name="name" value="local repository" />
-      <option name="url" value="file:$PROJECT_DIR$/lib" />
+      <option name="id" value="maven2-repository.dev.java.net" />
+      <option name="name" value="Java.net Maven 2 Repository" />
+      <option name="url" value="http://download.java.net/maven/2" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="central" />
@@ -17,9 +17,9 @@
       <option name="url" value="https://repo1.maven.org/maven2" />
     </remote-repository>
     <remote-repository>
-      <option name="id" value="maven2-repository.dev.java.net" />
-      <option name="name" value="Java.net Maven 2 Repository" />
-      <option name="url" value="http://download.java.net/maven/2" />
+      <option name="id" value="localrep" />
+      <option name="name" value="local repository" />
+      <option name="url" value="file:$PROJECT_DIR$/lib" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="jboss.community" />

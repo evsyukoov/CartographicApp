@@ -1,5 +1,6 @@
 package bot;
 
+import controller.WebHookServer;
 import convert.Converter;
 import convert.Transformator;
 import dao.SelectDAO;
@@ -26,8 +27,11 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public enum BotState {
+
     //0
     WELCOME {
         private static final String HELLO = "Отправьте файл или текст с координатами";
@@ -249,7 +253,6 @@ public enum BotState {
                     client.setState(CHOOSE_TYPE.ordinal());
                 }
                 else {
-                    System.out.printf("recieve: %s\n", recieve);
                     next = CHOOSE_ZONE;
                     client.setChoosedSK(recieve);
                     client.setState(CHOOSE_ZONE.ordinal());
@@ -297,9 +300,7 @@ public enum BotState {
             }
             try {
                 SelectDAO sd = client.getSd();
-                System.out.printf("Type: %s, SK: %s \n", client.getChoosedType(), client.getChoosedSK());
                 String recieve = botContext.getMessage().getText();
-                System.out.println(recieve);
                 if (recieve == null || (!sd.getZones().contains(recieve) &&
                         !recieve.equals("Помощь") && !recieve.equals("Назад"))) {
                     next = ERROR;
@@ -479,6 +480,8 @@ public enum BotState {
 
     public abstract BotState next(BotContext botContext);
 
+    private static final java.util.logging.Logger logger = Logger.getLogger(BotState.class.getName());
+
     public  Boolean checkStop(BotContext botContext, Client client)
     {
         String msg = botContext.getMessage().getText();
@@ -525,7 +528,6 @@ public enum BotState {
                     + botContext.getToken() + "/getFile?file_id=" + doc.getFileId());
             BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
             String res = in.readLine();
-            System.out.println(res);
             JSONObject jresult = new JSONObject(res);
             JSONObject path = jresult.getJSONObject("result");
             String file_path = path.getString("file_path");
@@ -546,12 +548,8 @@ public enum BotState {
             fw.close();
             uploadIn.close();
             in.close();
-            System.out.println("Uploaded!");
-        } catch (MalformedURLException e) {
-            System.out.println("URL error");
-            return (0);
         } catch (IOException e) {
-            System.out.println("openStream error");
+            logger.log(Level.SEVERE, e.getMessage());
             return (0);
         }
         return (1);
@@ -566,7 +564,7 @@ public enum BotState {
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, e.getMessage());
             return (0);
         }
         return (1);

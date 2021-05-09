@@ -11,6 +11,18 @@ import java.util.LinkedList;
 
 public class Client {
 
+    //для удобства логирования
+    String name;
+
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     //номер где будет храниться предыдущий стейт клиента в случае ухода с основной ветки
     private int prevState;
 

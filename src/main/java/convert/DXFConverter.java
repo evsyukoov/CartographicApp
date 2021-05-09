@@ -1,10 +1,14 @@
 package convert;
-import com.google.inject.internal.cglib.core.$Block;
+import bot.BotState;
 
 import java.io.*;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DXFConverter {
+    private static final java.util.logging.Logger logger = Logger.getLogger(BotState.class.getName());
+
     final static String CPLUSPLUS_BINARY = "/Users/denis/Denis/DxfParser/converter";
 
     LinkedList<Point> blocks;
@@ -75,7 +79,7 @@ public class DXFConverter {
             while ((res = br.readLine()) != null) {
                 int ret = parseLine(res);
                 if (ret == 0) {
-                    System.out.println("There is no blocks and polylines in dxf");
+
                     return (2);
                 }
             }
@@ -86,14 +90,14 @@ public class DXFConverter {
             int exitValue = p.waitFor();
             if (exitValue == 0)
             {
-                System.out.println("Problems with parsing on server");
+                logger.log(Level.SEVERE, "Problems with parsing dxf on server");
                 return (-1);
             }
 
         }
         catch(Exception e)
         {
-            System.out.println("Problems with parsing on server exception");
+            logger.log(Level.SEVERE, "Problems with parsing on server exception");
             return (-1);
         }
         return (1);
