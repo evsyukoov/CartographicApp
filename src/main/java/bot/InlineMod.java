@@ -1,0 +1,79 @@
+package bot;
+
+import dao.InlineDAO;
+import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.inlinequery.inputmessagecontent.InputTextMessageContent;
+import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResult;
+import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultArticle;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class InlineMod {
+    Update update;
+    GeodeticBot bot;
+    InlineDAO inlineDataAccess;
+
+    //в списке будут храниться совпадения полученные в результате поиска по inlineQuery из бд
+    LinkedList<String> data;
+
+    private static final Logger logger = Logger.getLogger(InlineMod.class.getName());
+
+
+    public InlineMod(Update update, GeodeticBot bot, InlineDAO inlineDataAccess) {
+        this.update = update;
+        this.bot = bot;
+        this.inlineDataAccess = inlineDataAccess;
+    }
+
+    //для WebHook вернуть AnswerInlineQuery == BotApiMethod
+    public void answerInline() throws SQLException {
+        AnswerInlineQuery answerInlineQuery = new AnswerInlineQuery();
+        answerInlineQuery.setInlineQueryId(update.getInlineQuery().getId());
+        if (update.getInlineQuery().getQuery().length() < 3)
+            answerInlineQuery.setResults(prepareSimpleAnswer());
+        else {
+            inlineDataAccess.setReceive(update.getInlineQuery().getQuery());
+            answerInlineQuery.setResults(prepareQueryAnswer());
+        }
+        try {
+            bot.execute(answerInlineQuery);
+        } catch (TelegramApiException e) {
+            logger.log(Level.SEVERE, "Problem with sending inline answer");
+        }
+    }
+
+    private InlineQueryResult prepareSimpleAnswer()
+    {
+        InlineQueryResultArticle inlineQueryResultArticle = new InlineQueryResultArticle();
+        InputTextMessageContent itmc = new InputTextMessageContent();
+        inlineQueryResultArticle.setId(update.getInlineQuery().getId());
+        itmc.setMessageText("Помощь");
+        inlineQueryResultArticle.setInputMessageContent(itmc);
+        inlineQueryResultArticle.setTitle("Помощь");
+        return inlineQueryResultArticle;
+    }
+
+    private List<InlineQueryResult> prepareQueryAnswer() throws SQLException {
+        List<InlineQueryResult> result = new ArrayList<>();
+        int i = 0;
+        inlineDataAccess.findParams();
+        for (String description : inlineDataAccess.getResult()) {
+            InlineQueryResultArticle inlineQueryResultArticle = new InlineQueryResultArticle();
+            inlineQueryResultArticle.setId(String.valueOf(++i));
+            InputTextMessageContent itmc = new InputTextMessageContent();
+            itmc.setMessageText(description);
+            inlineQueryResultArticle.setInputMessageContent(itmc);
+            inlineQueryResultArticle.setTitle(description);
+            result.add(inlineQueryResultArticle);
+        }
+        return result;
+    }
+}
