@@ -13,14 +13,35 @@ public class SelectDAO extends DAO{
     private ArrayList<String> sk;
     private ArrayList<String> zones;
 
-    private String param;   //итоговая строка которую ищем
-
     private String TYPES = "SELECT Type FROM coordinate_systems";
     private String SK = "SELECT Sk FROM coordinate_systems WHERE Type = ?";
     private String ZONE = "SELECT Zone FROM coordinate_systems WHERE Sk = ?";
     private String PARAM = "SELECT Param FROM coordinate_systems WHERE Type = ? AND Sk = ? AND Zone = ?";
 
+    private String PARAM_DESCRIPTION = "SELECT params FROM coordinate_systems WHERE description = ?";
+
+    private static final String SELECT_PARAM = "SELECT params FROM coordinate_systems_inline WHERE description = ?";
+
+    private String param;
+
+    public String getParam() {
+        return param;
+    }
+
     public SelectDAO() {
+    }
+
+    public String selectParam(String description) throws SQLException {
+        PreparedStatement ps = connection.prepareStatement(SELECT_PARAM);
+        ps.setString(1, description);
+        String result = null;
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            result = rs.getString(1);
+        }
+        closePrepareStatement(ps);
+        rs.close();
+        return result;
     }
 
     public void selectTypes() throws SQLException {
@@ -74,13 +95,9 @@ public class SelectDAO extends DAO{
         ps.setString(3, zone);
         ResultSet rs  = ps.executeQuery();
         rs.next();
-        param = rs.getString(1);
+        //param = rs.getString(1);
         closePrepareStatement(ps);
         rs.close();
-    }
-
-    public String getParam() {
-        return param;
     }
 
     public ArrayList<String> getTypes() {
@@ -93,5 +110,20 @@ public class SelectDAO extends DAO{
 
     public ArrayList<String> getZones() {
         return zones;
+    }
+
+    public String findCoordinateSystemParam(String description) throws SQLException {
+        super.startConnection();
+        String param = null;
+        PreparedStatement ps = connection.prepareStatement(SELECT_PARAM);
+        ps.setString(1, description);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            param = rs.getString(1);
+        }
+        rs.close();
+        ps.close();
+        super.connection.close();
+        return param;
     }
 }

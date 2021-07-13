@@ -1,14 +1,10 @@
 package bot;
 
 
-import bot.enums.InputCoordinatesType;
 import bot.enums.OutputFileType;
 import bot.enums.TransType;
 import convert.InfoReader;
 import dao.SelectDAO;
-
-import java.io.File;
-import java.util.ArrayList;
 
 public class Client {
 
@@ -17,64 +13,51 @@ public class Client {
 
     TransType transType;
 
-    String targetType;
-
-    String targetSk;
-
-    String targetZone;
-
-    public String getTargetType() {
-        return targetType;
-    }
-
-    public void setTargetType(String targetType) {
-        this.targetType = targetType;
-    }
-
-    public String getTargetSk() {
-        return targetSk;
-    }
-
-    public void setTargetSk(String targetSk) {
-        this.targetSk = targetSk;
-    }
-
-    public String getTargetZone() {
-        return targetZone;
-    }
-
-    public void setTargetZone(String targetZone) {
-        this.targetZone = targetZone;
-    }
-
-    public TransType getTransType() {
-        return transType;
-    }
-
     OutputFileType outputFileType;
 
     InfoReader infoReader;
 
-    String transformationParametrs;
+    String srcSystem;
 
-    //параметры для перевода типа плоские в плоские
+    String tgtSystem;
 
-    String secondTransformationParamters;
+    private int state;
 
-    public String getSecondTransformationParamters() {
-        return secondTransformationParamters;
+    private Boolean isClientReady;
+
+    private String extension;
+
+    private String errorMSG;
+
+    private String uploadPath;
+
+    private String savePath;
+
+    private long id;
+
+
+    public void setTransType(TransType transType) {
+        this.transType = transType;
     }
 
-    public void setSecondTransformationParamters(String secondTransformationParamters) {
-        this.secondTransformationParamters = secondTransformationParamters;
+    public String getSrcSystem() {
+        return srcSystem;
     }
 
-    public String getTransformationParametrs() {
-        return transformationParametrs;
+    public void setSrcSystem(String srcSystem) {
+        this.srcSystem = srcSystem;
     }
 
-    public void setTransformationParametrs(String transformationParametrs) {
-        this.transformationParametrs = transformationParametrs;
+    public String getTgtSystem() {
+        return tgtSystem;
+    }
+
+    public void setTgtSystem(String tgtSystem) {
+        this.tgtSystem = tgtSystem;
+    }
+
+    public TransType getTransType() {
+        return transType;
     }
 
     public OutputFileType getOutputFileType() {
@@ -101,27 +84,8 @@ public class Client {
         this.prevState = prevState;
     }
 
-    private  String uploadPath;
-
-    private String savePath;
-
     public String getExtension() {
         return extension;
-    }
-
-    private String extension;
-
-    private String errorMSG;
-
-    private SelectDAO sd;
-
-    public void setSd(SelectDAO sd) {
-        this.sd = sd;
-    }
-
-
-    public SelectDAO getSd() {
-        return sd;
     }
 
     public String getErrorMSG() {
@@ -132,57 +96,15 @@ public class Client {
         this.errorMSG = errorMSG;
     }
 
-    private String choosedSK;
-
-    private String choosedType;
-
-    private String choosedZone;
-
-    private File file;
-
-    private long id;
-
-    public File getFile() {
-        return file;
-    }
-
     public String getSavePath() {
         return savePath;
     }
-
-    public void setFile(File file) {
-        this.file = file;
-    }
-
-    private int         state;
-
-    private Boolean     isClientReady;
 
     public Client(long id) {
         this.id = id;
         uploadPath = "./src/main/resources/uploaded/" + "file_" + id;
         isClientReady = false;
         savePath = "./src/main/resources/send/" + id;
-    }
-
-    public void setChoosedSK(String choosedSK) {
-        this.choosedSK = choosedSK;
-    }
-
-    public void setChoosedType(String choosedType) {
-        this.choosedType = choosedType;
-    }
-
-    public void setChoosedZone(String choosedZone) {
-        this.choosedZone = choosedZone;
-    }
-
-    public String getChoosedSK() {
-        return choosedSK;
-    }
-
-    public String getChoosedZone() {
-        return choosedZone;
     }
 
     public void setState(int state) {
@@ -205,14 +127,6 @@ public class Client {
         return uploadPath;
     }
 
-
-    public  void    clean()
-    {
-        choosedSK = null;
-        choosedType = null;
-        choosedZone = null;
-    }
-
     public void setClientReady(Boolean clientReady) {
         isClientReady = clientReady;
     }
@@ -221,48 +135,4 @@ public class Client {
         return isClientReady;
     }
 
-    public String getChoosedType() {
-        return choosedType;
-    }
-
-    public void analizeTransformationType(String receive) {
-        if (infoReader.getInputCoordinatesType() == InputCoordinatesType.WGS)
-        {
-            if (receive.equals("GPX"))
-            {
-                transType = TransType.WGS_TO_WGS;
-                outputFileType = OutputFileType.GPX;
-            }
-            else if (receive.equals("KML"))
-            {
-                transType = TransType.WGS_TO_WGS;
-                outputFileType = OutputFileType.KML;
-            }
-            else if (receive.equals("CSV(плоские)"))
-            {
-                transType = TransType.WGS_TO_MSK;
-                outputFileType = OutputFileType.CSV;
-            }
-        }
-        else
-        {
-            if (receive.equals("GPX")) {
-                transType = TransType.MSK_TO_WGS;
-                outputFileType = OutputFileType.GPX;
-            }
-            else if (receive.equals("KML")) {
-                transType = TransType.MSK_TO_WGS;
-                outputFileType = OutputFileType.KML;
-            }
-            else if (receive.equals("CSV(WGS-84)")){
-                transType = TransType.MSK_TO_WGS;
-                outputFileType = OutputFileType.CSV;
-            }
-            else if (receive.equals("CSV(плоские)"))
-            {
-                transType = TransType.MSK_TO_MSK;
-                outputFileType = OutputFileType.CSV;
-            }
-        }
-    }
 }

@@ -21,6 +21,7 @@ public class ClientDAO extends DAO {
     private final String SELECT_ALL = "SELECT id FROM clients";
 
 
+
     public ClientDAO() {
     }
 

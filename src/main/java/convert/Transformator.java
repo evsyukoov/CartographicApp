@@ -201,12 +201,12 @@ public class Transformator {
         CoordinateReferenceSystem src;
         CoordinateReferenceSystem target;
         if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.MSK) {
-                src = factory.createFromParameters(null, client.getTransformationParametrs());
+                src = factory.createFromParameters(null, client.getSrcSystem());
                 target = factory.createFromName(WGS84);
         }
         else {
             src = factory.createFromName(WGS84);
-            target = factory.createFromParameters(null, client.getTransformationParametrs());
+            target = factory.createFromParameters(null, client.getSrcSystem());
         }
        transformation = new CoordinateTransformFactory().createTransform(src, target);
         return (1);
@@ -218,7 +218,7 @@ public class Transformator {
         CoordinateReferenceSystem src;
         CoordinateReferenceSystem target;
         src = factory.createFromName(WGS84);
-        target = factory.createFromParameters(null, client.getSecondTransformationParamters());
+        target = factory.createFromParameters(null, client.getTgtSystem());
         extraTransformation = new CoordinateTransformFactory().createTransform(src, target);
     }
 
@@ -229,7 +229,7 @@ public class Transformator {
         ProjCoordinate src;
         src = new ProjCoordinate(point.y, point.x);
         transformation.transform(src, result);
-        tgt = new Point(point.name, result.y, result.x);
+        tgt = new Point(point.name, result.y, result.x, point.h);
         return (tgt);
     }
 
@@ -241,7 +241,7 @@ public class Transformator {
         transformation.transform(src, middwareResult);
         //System.out.printf("%s %f %f\n", middwareResult.y, middwareResult.x);
         extraTransformation.transform(middwareResult, result);
-        return new Point(point.name, result.x, result.y);
+        return new Point(point.name, result.x, result.y, point.h);
     }
 
 

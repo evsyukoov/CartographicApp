@@ -9,13 +9,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class DAO {
-    protected Connection connection = null;
+    public Connection connection = null;
     private final String CONNECTION = "jdbc:mysql://127.0.0.1:3306/transform_bot?allowPublicKeyRetrieval=true&useSSL=false" +
             "&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
     private final String LOGIN = "root";
     private final String PASS = "1111";
 
-    public void closePrepareStatement(PreparedStatement ps) {
+    public static void closePrepareStatement(PreparedStatement ps) {
         if (ps != null) {
             try {
                 ps.close();
