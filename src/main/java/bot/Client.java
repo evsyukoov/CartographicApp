@@ -1,10 +1,8 @@
 package bot;
 
-
 import bot.enums.OutputFileType;
 import bot.enums.TransType;
 import convert.InfoReader;
-import dao.SelectDAO;
 
 public class Client {
 

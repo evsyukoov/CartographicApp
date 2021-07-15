@@ -5,13 +5,14 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 public class BotContext {
-    private GeodeticBot bot;
-    private Message message;
-    private String token;
-    private Update update;
-    private Chat chat;
+    private final GeodeticBot bot;
+    private final Message message;
+    private final String token;
+    private final Update update;
+    private final Chat chat;
 
-    public BotContext(GeodeticBot bot, Message message, String token, Update update, Chat chat) {
+    public BotContext(GeodeticBot bot, Message message,
+                      String token, Update update, Chat chat) {
         this.bot = bot;
         this.message = message;
         this.token = token;

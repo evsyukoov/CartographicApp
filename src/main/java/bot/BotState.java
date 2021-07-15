@@ -3,9 +3,8 @@ package bot;
 import bot.enums.InputCoordinatesType;
 import bot.enums.OutputFileType;
 import bot.enums.TransType;
-import bot.outputgenerators.GeneratorManager;
 import convert.InfoReader;
-import dao.SelectDAO;
+import dao.SelectDataAccessObject;
 import org.json.JSONObject;
 import org.osgeo.proj4j.Proj4jException;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
@@ -221,8 +220,8 @@ public enum BotState {
             client.setPrevState(CHOOSE_SYSTEM_COORDINATE_SRC.ordinal() - 1);
             if ((next = helpersCasesAnalize(botContext, client, CHOOSE_SYSTEM_COORDINATE_SRC)) != null)
                 return;
-            SelectDAO dao = new SelectDAO();
-            String param = dao.findCoordinateSystemParam(botContext.getMessage().getText());
+            String param = SelectDataAccessObject.
+                    findCoordinateSystemParam(botContext.getMessage().getText());
             if (param == null) {
                 client.setErrorMSG("Неверный выбор системы координат");
                 next = CHOOSE_SYSTEM_COORDINATE_SRC;
@@ -264,8 +263,8 @@ public enum BotState {
             client.setPrevState(CHOOSE_SYSTEM_COORDINATE_TGT.ordinal() - 1);
             if ((next = helpersCasesAnalize(botContext, client, CHOOSE_SYSTEM_COORDINATE_TGT)) != null)
                 return;
-            SelectDAO sd = new SelectDAO();
-            String param = sd.findCoordinateSystemParam(botContext.getMessage().getText());
+            String param = SelectDataAccessObject.
+                    findCoordinateSystemParam(botContext.getMessage().getText());
             if (param == null) {
                 client.setErrorMSG("Неверный выбор системы координат");
                 next = CHOOSE_SYSTEM_COORDINATE_TGT;

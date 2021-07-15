@@ -1,20 +1,16 @@
 package dao;
-
-
 //Возможно нужно будет реализовать догрузку в БД в рантайме,  пока что класс для предзаполнения БД
-
-import Helper.Helper;
-import Helper.SystemParam;
 
 import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.LinkedList;
 
-public class DownloadDAO extends DAO {
-    private final String DOWNLOAD = "INSERT INTO coordinate_systems(Type, Sk, Param, Zone) VALUES(?,?,?,?)";
+public class DownloadDataAccessObject extends DataAccessObject {
+    private static final String DOWNLOAD = "INSERT INTO coordinate_systems(Type, Sk, Param, Zone) VALUES(?,?,?,?)";
 
-    public void startDownload() throws SQLException {
+    public static void startDownload() throws SQLException {
+        startConnection();
         System.out.println("Start download");
         File file = new File("./src/main/java/Helper/Projections.txt");
         Helper helper = new Helper();
@@ -29,8 +25,8 @@ public class DownloadDAO extends DAO {
             ps.setString(4, params.get(i).zone);
             ps.executeUpdate();
         }
-        closePrepareStatement(ps);
+        ps.close();
         System.out.println("Predownload is finish!");
-
+        closeConnection();
     }
 }

@@ -1,6 +1,6 @@
 package bot;
 
-import dao.InlineDAO;
+import dao.InlineDataAccessObject;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -19,29 +19,23 @@ import java.util.logging.Logger;
 public class InlineMod {
     Update update;
     GeodeticBot bot;
-    InlineDAO inlineDataAccess;
-
-    //в списке будут храниться совпадения полученные в результате поиска по inlineQuery из бд
-    LinkedList<String> data;
 
     private static final Logger logger = Logger.getLogger(InlineMod.class.getName());
 
 
-    public InlineMod(Update update, GeodeticBot bot, InlineDAO inlineDataAccess) {
+    public InlineMod(Update update, GeodeticBot bot) {
         this.update = update;
         this.bot = bot;
-        this.inlineDataAccess = inlineDataAccess;
     }
 
     //для WebHook вернуть AnswerInlineQuery == BotApiMethod
     public void answerInline() throws SQLException {
         AnswerInlineQuery answerInlineQuery = new AnswerInlineQuery();
         answerInlineQuery.setInlineQueryId(update.getInlineQuery().getId());
-        if (update.getInlineQuery().getQuery().length() < 3)
+        if (update.getInlineQuery().getQuery().length() < 3) {
             answerInlineQuery.setResults(prepareSimpleAnswer());
-        else {
-            inlineDataAccess.setReceive(update.getInlineQuery().getQuery());
-            answerInlineQuery.setResults(prepareQueryAnswer());
+        } else {
+            answerInlineQuery.setResults(prepareQueryAnswer(update.getInlineQuery().getQuery()));
         }
         try {
             bot.execute(answerInlineQuery);
@@ -61,11 +55,10 @@ public class InlineMod {
         return inlineQueryResultArticle;
     }
 
-    private List<InlineQueryResult> prepareQueryAnswer() throws SQLException {
+    private List<InlineQueryResult> prepareQueryAnswer(String receive) throws SQLException {
         List<InlineQueryResult> result = new ArrayList<>();
         int i = 0;
-        inlineDataAccess.findParams();
-        for (String description : inlineDataAccess.getResult()) {
+        for (String description : InlineDataAccessObject.findParams(receive)) {
             InlineQueryResultArticle inlineQueryResultArticle = new InlineQueryResultArticle();
             inlineQueryResultArticle.setId(String.valueOf(++i));
             InputTextMessageContent itmc = new InputTextMessageContent();
