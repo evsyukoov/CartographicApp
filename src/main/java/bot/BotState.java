@@ -33,7 +33,6 @@ public enum BotState {
         public void writeToClient(BotContext botContext, Client client) {
             SendMessage sm = new SendMessage();
             sm.setText(HELLO);
-            //setInlineKeyboard(sm, "Помощь");
             sendMessage(botContext, sm);
         }
 
@@ -178,7 +177,7 @@ public enum BotState {
                     client.setState(next.ordinal());
                     client.setTransType(TransType.WGS_TO_MSK);
                 } else if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.MSK &&
-                        (recv.equals("KML") || recv.equals("GPX") || recv.equals("CSV(WGS)"))) {
+                        (recv.equals("KML") || recv.equals("GPX") || recv.equals("CSV(WGS-84)"))) {
                     next = CHOOSE_SYSTEM_COORDINATE_SRC;
                     client.setState(next.ordinal());
                     client.setTransType(TransType.MSK_TO_WGS);
@@ -566,7 +565,7 @@ public enum BotState {
             client.setOutputFileType(OutputFileType.DXF);
         } else if (recv.equals("KML")) {
             client.setOutputFileType(OutputFileType.KML);
-        } else if (recv.equals("CSV") || recv.equals("CSV(плоские)")) {
+        } else if (recv.equals("CSV") || recv.equals("CSV(плоские)") || recv.equals("CSV(WGS-84)")) {
             client.setOutputFileType(OutputFileType.CSV);
         } else if (recv.equals("GPX")) {
             client.setOutputFileType(OutputFileType.GPX);

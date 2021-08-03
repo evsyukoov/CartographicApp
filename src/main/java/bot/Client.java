@@ -27,11 +27,11 @@ public class Client {
 
     private String errorMSG;
 
-    private String uploadPath;
+    private final String uploadPath;
 
-    private String savePath;
+    private final String savePath;
 
-    private long id;
+    private final long id;
 
 
     public void setTransType(TransType transType) {
