@@ -1,14 +1,11 @@
 package convert;
 
-import ch.qos.logback.core.util.FileUtil;
+import exceptions.WrongFileFormatException;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -29,14 +26,12 @@ public class Archivator {
         fromArchive = new ArrayList<>();
     }
 
-    public int extractFile()
-    {
+    public void extractFile() throws Exception {
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zip))) {
             ZipEntry entry;
             String name;
             int j = 0;
-            while ((entry = zis.getNextEntry()) != null && !entry.isDirectory())
-            {
+            while ((entry = zis.getNextEntry()) != null && !entry.isDirectory()) {
                 System.out.println(entry.getName());
                 name = entry.getName();
                 if (!name.substring(name.indexOf('.') + 1).equalsIgnoreCase("kml"))
@@ -55,10 +50,8 @@ public class Archivator {
         }
         catch (IOException e)
         {
-            e.printStackTrace();
-            return (0);
+            throw new WrongFileFormatException("Проблемы с KMZ архивом. Сообщите техподдержке", e);
         }
-        return (1);
     }
 
     public ArrayList<File> getFromArchive() {

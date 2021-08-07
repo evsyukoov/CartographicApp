@@ -1,14 +1,10 @@
 package convert;
-import bot.BotState;
+import exceptions.WrongFileFormatException;
 
 import java.io.*;
 import java.util.LinkedList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class DXFConverter {
-    private static final java.util.logging.Logger logger = Logger.getLogger(BotState.class.getName());
-
     final static String CPLUSPLUS_BINARY = "/Users/denis/Denis/DxfParser/converter";
 
     LinkedList<Point> blocks;
@@ -39,10 +35,11 @@ public class DXFConverter {
         return p;
     }
 
-    private int parseLine(String line)
+    private void parseLine(String line) throws WrongFileFormatException
     {
-        if (line.equals("empty"))
-            return (0);
+        if (line.equals("empty")) {
+            throw new WrongFileFormatException("Нет блоков и замкнутых полилиний в чертеже");
+        }
         else if (line.startsWith("bl"))
             blocks.push(parsePoint(line.substring(line.indexOf(',') + 1)));
         else if (line.equals("endBlocks"))
@@ -54,7 +51,6 @@ public class DXFConverter {
         }
         else if (Character.isDigit(line.charAt(0)))
             pline.addPoint(parsePoint(line));
-        return (1);
     }
 
     private void checkBlocksAndLines()
@@ -66,41 +62,25 @@ public class DXFConverter {
     }
 
     //сам конвертер написан на с++ с использованием dxflib
-    public int   parseDXF()
-    {
+    public void parseDXF() throws Exception {
         Runtime r = Runtime.getRuntime();
         Process p = null;
         String[] cmd = new String[]{CPLUSPLUS_BINARY, dxfName};
-        try{
-            p = r.exec(cmd);
-            InputStream is = p.getInputStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String res;
-            while ((res = br.readLine()) != null) {
-                int ret = parseLine(res);
-                if (ret == 0) {
-
-                    return (2);
-                }
-            }
-
-            is.close();
-            br.close();
-            checkBlocksAndLines();
-            int exitValue = p.waitFor();
-            if (exitValue == 0)
-            {
-                logger.log(Level.SEVERE, "Problems with parsing dxf on server");
-                return (-1);
-            }
-
+        p = r.exec(cmd);
+        InputStream is = p.getInputStream();
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String res;
+        while ((res = br.readLine()) != null) {
+            parseLine(res);
         }
-        catch(Exception e)
-        {
-            logger.log(Level.SEVERE, "Problems with parsing on server exception");
-            return (-1);
+
+        is.close();
+        br.close();
+        checkBlocksAndLines();
+        int exitValue = p.waitFor();
+        if (exitValue == 0) {
+            throw new WrongFileFormatException("Неизвестная ошибка во время парсинга dxf файла. Сообщите техподдержке");
         }
-        return (1);
     }
 
     public void    print()
@@ -121,11 +101,4 @@ public class DXFConverter {
             }
         }
     }
-
-//    public static void main(String[] args)  {
-//        DXFConverter dxfConverter = new DXFConverter("/Users/denis/Desktop/test3.dxf");
-//        //dxfConverter.print();
-//
-//
-//    }
 }

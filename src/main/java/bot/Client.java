@@ -1,13 +1,8 @@
 package bot;
 
-
-import convert.DXFConverter;
-import convert.Point;
-import dao.SelectDAO;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedList;
+import bot.enums.OutputFileType;
+import bot.enums.TransType;
+import convert.InfoReader;
 
 public class Client {
 
@@ -26,6 +21,71 @@ public class Client {
     //номер где будет храниться предыдущий стейт клиента в случае ухода с основной ветки
     private int prevState;
 
+    TransType transType;
+
+    OutputFileType outputFileType;
+
+    InfoReader infoReader;
+
+    String srcSystem;
+
+    String tgtSystem;
+
+    private int state;
+
+    private Boolean isClientReady;
+
+    private String extension;
+
+    private String errorMSG;
+
+    private final String uploadPath;
+
+    private final String savePath;
+
+    private final long id;
+
+
+    public void setTransType(TransType transType) {
+        this.transType = transType;
+    }
+
+    public String getSrcSystem() {
+        return srcSystem;
+    }
+
+    public void setSrcSystem(String srcSystem) {
+        this.srcSystem = srcSystem;
+    }
+
+    public String getTgtSystem() {
+        return tgtSystem;
+    }
+
+    public void setTgtSystem(String tgtSystem) {
+        this.tgtSystem = tgtSystem;
+    }
+
+    public TransType getTransType() {
+        return transType;
+    }
+
+    public OutputFileType getOutputFileType() {
+        return outputFileType;
+    }
+
+    public void setOutputFileType(OutputFileType outputFileType) {
+        this.outputFileType = outputFileType;
+    }
+
+    public void setInfoReader(InfoReader infoReader) {
+        this.infoReader = infoReader;
+    }
+
+    public InfoReader getInfoReader() {
+        return infoReader;
+    }
+
     public int getPrevState() {
         return prevState;
     }
@@ -34,39 +94,8 @@ public class Client {
         this.prevState = prevState;
     }
 
-    private LinkedList<Point> pointsFromFile;
-
-    private DXFConverter dxf;
-
-    public void setDxf(DXFConverter dxf) {
-        this.dxf = dxf;
-    }
-
-    public DXFConverter getDxf() {
-        return dxf;
-    }
-
-    private  String uploadPath;
-
-    private String savePath;
-
     public String getExtension() {
         return extension;
-    }
-
-    private String extension;
-
-    private String errorMSG;
-
-    private SelectDAO sd;
-
-    public void setSd(SelectDAO sd) {
-        this.sd = sd;
-    }
-
-
-    public SelectDAO getSd() {
-        return sd;
     }
 
     public String getErrorMSG() {
@@ -77,71 +106,15 @@ public class Client {
         this.errorMSG = errorMSG;
     }
 
-    private String choosedSK;
-
-    private String choosedType;
-
-    private String choosedZone;
-
-    private ArrayList<File> files;
-
-    public int getTransformType() {
-        return transformType;
-    }
-
-    public void setTransformType(int transformType) {
-        this.transformType = transformType;
-    }
-
-    private int transformType;
-
-    private long id;
-
-    public ArrayList<File> getFiles() {
-        return files;
-    }
-
     public String getSavePath() {
         return savePath;
     }
-
-    public void setFiles(ArrayList<File> files) {
-        this.files = files;
-    }
-
-    private int         state;
-
-    private Boolean     isClientReady;
 
     public Client(long id) {
         this.id = id;
         uploadPath = "./src/main/resources/uploaded/" + "file_" + id;
         isClientReady = false;
         savePath = "./src/main/resources/send/" + id;
-    }
-
-    public void setPointsFromFile(LinkedList<Point> pointsFromFile) {
-        this.pointsFromFile = pointsFromFile;
-    }
-
-    public void setChoosedSK(String choosedSK) {
-        this.choosedSK = choosedSK;
-    }
-
-    public void setChoosedType(String choosedType) {
-        this.choosedType = choosedType;
-    }
-
-    public void setGetChoosedZone(String choosedZone) {
-        this.choosedZone = choosedZone;
-    }
-
-    public String getChoosedSK() {
-        return choosedSK;
-    }
-
-    public String getChoosedZone() {
-        return choosedZone;
     }
 
     public void setState(int state) {
@@ -164,18 +137,6 @@ public class Client {
         return uploadPath;
     }
 
-    public LinkedList<Point> getPointsFromFile() {
-        return pointsFromFile;
-    }
-
-    public  void    clean()
-    {
-        choosedSK = null;
-        choosedType = null;
-        choosedZone = null;
-        pointsFromFile = null;
-    }
-
     public void setClientReady(Boolean clientReady) {
         isClientReady = clientReady;
     }
@@ -184,7 +145,4 @@ public class Client {
         return isClientReady;
     }
 
-    public String getChoosedType() {
-        return choosedType;
-    }
 }
