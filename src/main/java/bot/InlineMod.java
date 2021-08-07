@@ -49,9 +49,9 @@ public class InlineMod {
         InlineQueryResultArticle inlineQueryResultArticle = new InlineQueryResultArticle();
         InputTextMessageContent itmc = new InputTextMessageContent();
         inlineQueryResultArticle.setId(update.getInlineQuery().getId());
-        itmc.setMessageText("Помощь");
+        itmc.setMessageText("Начните вводить свою систему координат(хотя бы 3 буквы)");
         inlineQueryResultArticle.setInputMessageContent(itmc);
-        inlineQueryResultArticle.setTitle("Помощь");
+        inlineQueryResultArticle.setTitle("Начните вводить свою систему координат(хотя бы 3 буквы)");
         return inlineQueryResultArticle;
     }
 

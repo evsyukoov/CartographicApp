@@ -1,9 +1,10 @@
 package convert;//import com.oracle.tools.packager.Log;
-//import jdk.internal.org.jline.utils.Log;
+import exceptions.WrongFileFormatException;
 import bot.enums.InputCoordinatesType;
 import com.github.fracpete.gpsformats4j.Convert;
 import com.github.fracpete.gpsformats4j.formats.CSV;
 import com.github.fracpete.gpsformats4j.formats.KML;
+import com.opencsv.CSVParser;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -48,8 +49,7 @@ public class InfoReader
         this.readedPoints = new LinkedList<Point>();
     }
 
-    public int readText()
-    {
+    public void readText() throws Exception {
         String []arr = text.split("\n");
         boolean flag = false;
         int type = 0;
@@ -57,52 +57,41 @@ public class InfoReader
         for (int i = 0;i < arr.length; i++)
         {
             type = transformType;
-            if ((p = parseLine(arr[i])) != null)
-            {
+            if ((p = parseLine(arr[i])) != null) {
                 if (flag && type != transformType)
-                    return (0);
+                    throw new WrongFileFormatException(String.format
+                            ("Различные типы координат в файле. Проверьте строку %s\n", arr[i]));
                 readedPoints.add(p);
             }
-            else
-                return (0);
             flag = true;
         }
         inputCoordinatesType = transformType == 1 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
-        return (1);
     }
 
     public DXFConverter getFromDXF() {
         return fromDXF;
     }
 
-    public int readFile() {
+    public void readFile() throws Exception {
         BufferedReader fr;
         int type = 0;
         String line;
         boolean flag = false;
-        try {
-            fr = new BufferedReader(new FileReader(input));
-            while ((line = fr.readLine()) != null) {
-                Point point;
-                if (line.isEmpty())
-                    continue;
-                type = transformType;
-                if ((point = parseLine(line)) != null) {
-                    //если в файле встретились различные типы координат
-                    if (flag && type != transformType)
-                        return (0);
-                    readedPoints.add(point);
-                }
-                else
-                    return (0);
+        fr = new BufferedReader(new FileReader(input));
+        while ((line = fr.readLine()) != null) {
+            if (line.isEmpty())
+                continue;
+            type = transformType;
+            Point point = parseLine(line);
+            //если в файле встретились различные типы координат
+            if (flag && type != transformType)
+                throw new WrongFileFormatException(String.format
+                        ("Различные типы координат в файле. Проверьте строку %s\n", line));
+            readedPoints.add(point);
 
-                flag = true;
-            }
-        } catch (IOException e) { ;
-            return (-1);
+            flag = true;
         }
         inputCoordinatesType = transformType == 1 ? InputCoordinatesType.WGS : InputCoordinatesType.MSK;
-        return (1);
     }
 
     public InfoReader() {
@@ -133,29 +122,26 @@ public class InfoReader
     }
 
     // читаем и парсим одну строчку
-    public Point     parseLine(String line)
-    {
+    public Point     parseLine(String line) throws Exception {
         String[] splitted = line.split("\\s*;\\s*");
         double h = 0;
         double x;
         double y;
         if (splitted.length > 4 || splitted.length < 3)
-            return null;
+            throw new WrongFileFormatException(
+                    String.format("Неверный формат строки. Строка: %s", line));
+        if (isWGS(splitted[1], splitted[2]))
+            transformType = 1;
+        else
+            transformType = 0;
         try {
-            if (isWGS(splitted[1], splitted[2]))
-                transformType = 1;
-            else
-                transformType = 0;
             x = Double.parseDouble(splitted[1]);
             y = Double.parseDouble(splitted[2]);
             if (splitted.length == 4) {
                 h = Double.parseDouble(splitted[3]);
             }
-
-        }
-        catch (NumberFormatException e)
-        {
-            return null;
+        } catch (NumberFormatException e) {
+            throw new WrongFileFormatException(String.format("Ошибочный текст, строка: %s", line), e);
         }
         return (new Point(splitted[0], x, y, h));
     }
@@ -168,117 +154,87 @@ public class InfoReader
         return readedPoints;
     }
 
-    private int readFromKML(File input){
+    private void readFromKML(File input) throws Exception  {
         Convert convert = new Convert();
         convert.setInputFile(input);
         convert.setInputFormat(KML.class);
         File out = new File(kmlDIR + id);
-        try {
-            out.createNewFile();
-        }catch (IOException e){
-            e.printStackTrace();
-            return (-1);
-        }
+        out.createNewFile();
         convert.setOutputFile(out);
         convert.setOutputFormat(CSV.class);
         String msg = convert.execute();
-        if (msg != null)
-            return (0);
-        if (out.length() == 0) {
+        if (msg != null || out.length() == 0) {
             out.delete();
-            return (0);
+            throw new WrongFileFormatException("Некорректный kml-файл");
         }
+        CSVParser parser = new CSVParser();
+        String line = null;
         try (BufferedReader bfr = new BufferedReader(new FileReader(out))) {
-            String line;
             while ((line = bfr.readLine()) != null)
             {
                 if (!line.startsWith("Track,Time,Latitude,Longitude,Elevation")) {
-                    String []arr = line.split("\\s*,\\s*");
+                    String []arr = parser.parseLine(line);
                     readedPoints.add(new Point(arr[0], Double.parseDouble(arr[3]), Double.parseDouble(arr[2]), Double.parseDouble(arr[4])));
                 }
-                out.delete();
             }
+            out.delete();
         }
-        catch (IOException e) {
-            e.printStackTrace();
-            return (-1);
+        catch (NumberFormatException e) {
+            throw new WrongFileFormatException(
+                    String.format("Неверный формат точки: %s", line), e);
         }
-        return (1);
     }
 
-    private int     createTmpDirectory()
+    private void     createTmpDirectory() throws IOException
     {
         Path path = Paths.get(kmlDIR);
-        try {
-            if (Files.notExists(path))
-                Files.createDirectory(path);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-            return (0);
-        }
-        return (1);
+        if (Files.notExists(path))
+            Files.createDirectory(path);
     }
 
-    private int     readFromKMZ() {
-            Archivator arch = new Archivator(input, kmlDIR);
-            if (arch.extractFile() == 0)
-                return (-1);
-            ArrayList<File> extracted = arch.getFromArchive();
-            for (File file : extracted) {
-                int ret = readFromKML(file);
-                file.delete();
-                if (ret == -1 || ret == 0)
-                    return ret;
-            }
-            return (1);
+    private void     readFromKMZ() throws Exception {
+        Archivator arch = new Archivator(input, kmlDIR);
+        arch.extractFile();
+        ArrayList<File> extracted = arch.getFromArchive();
+        for (File file : extracted) {
+            readFromKML(file);
+            file.delete();
         }
+    }
 
-    public  int run()
-    {
+    public  void run() throws Exception {
         if (extension.equalsIgnoreCase("txt") || extension.equalsIgnoreCase("csv")) {
-            int ret = readFile();
-            input.delete();
-            return(ret);
+            readFile();
+            //input.delete();
         }
         else if (extension.equalsIgnoreCase("kml"))
         {
-            inputCoordinatesType = InputCoordinatesType.WGS;
             kmlDIR = "./src/main/resources/uploaded/" + id + "/";
-            if (createTmpDirectory() == 0)
-                return (-1);
-            int ret = readFromKML(input);
-            input.delete();
-            return (ret);
+            createTmpDirectory();
+            readFromKML(input);
+            inputCoordinatesType = InputCoordinatesType.WGS;
+            //input.delete();
         }
         else if (extension.equalsIgnoreCase("KMZ"))
         {
             kmlDIR = "./src/main/resources/uploaded/" + id + "/";
-            if (createTmpDirectory() == 0)
-                return (-1);
-            int ret = readFromKMZ();
-            input.delete();
+            createTmpDirectory();
+            readFromKMZ();
+            //input.delete();
             inputCoordinatesType = InputCoordinatesType.WGS;
-            return (ret);
         }
         else if (extension.equalsIgnoreCase("dxf"))
         {
             isDxf = true;
             inputCoordinatesType = InputCoordinatesType.MSK;
             DXFConverter fromDXF = new DXFConverter(input.getAbsolutePath());
-            int ret = fromDXF.parseDXF();
+            fromDXF.parseDXF();
             this.fromDXF = fromDXF;
-            fromDXF.print();
-            input.delete();
-            return ret;
+            //input.delete()
         }
-        else
-            return 0;
-    }
-
-    public void setReadedPoints(LinkedList<Point> readedPoints) {
-        this.readedPoints = readedPoints;
+        else {
+            throw new WrongFileFormatException(String.format("Неизвестный формат файла"));
+        }
     }
 
     public boolean isDxf() {

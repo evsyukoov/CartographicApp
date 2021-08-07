@@ -1,5 +1,7 @@
 package bot;
 
+import exceptions.UploadFileException;
+import exceptions.WrongFileFormatException;
 import bot.enums.InputCoordinatesType;
 import bot.enums.OutputFileType;
 import bot.enums.TransType;
@@ -15,7 +17,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum BotState {
+
     //0
     WELCOME {
         private static final String HELLO = "Отправьте файл или текст с координатами";
@@ -67,9 +69,16 @@ public enum BotState {
             //получили от клиента строку
             if ((text = botContext.getMessage().getText()) != null) {
                 InfoReader c = new InfoReader(text);
-                if (c.readText() == 0) {
+                try {
+                    c.readText();
+                } catch (WrongFileFormatException e){
                     next = FILE;
-                    client.setErrorMSG("Неверный формат текста");
+                    client.setErrorMSG(e.getMessage());
+                    ERROR.writeToClient(botContext, client);
+                    return;
+                } catch (Exception e) {
+                    next = FILE;
+                    client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
                     ERROR.writeToClient(botContext, client);
                     return;
                 }
@@ -80,33 +89,40 @@ public enum BotState {
                 return;
             }
             //получили от клиента файл
-            if (botContext.getMessage().getDocument() != null && uploadFile(botContext, client) == 0) {
-                next = FILE;
-                client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
-                client.setState(FILE.ordinal());
-                ERROR.writeToClient(botContext, client);
-                return;
+            if (botContext.getMessage().getDocument() != null) {
+                try {
+                    uploadFile(botContext, client);
+                } catch (UploadFileException e) {
+                    next = FILE;
+                    client.setErrorMSG(e.getMessage());
+                    client.setState(FILE.ordinal());
+                    ERROR.writeToClient(botContext, client);
+                    return;
+                } catch (Exception e) {
+                    next = FILE;
+                    client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                    client.setState(FILE.ordinal());
+                    ERROR.writeToClient(botContext, client);
+                    return;
+                }
             }
-            InfoReader c = new InfoReader(new File(client.getUploadPath()), client.getId(), client.getExtension());
-            int ret = c.run();
-            if (ret == 0) {
-                client.setErrorMSG("Неверный формат файла");
+            InfoReader reader = new InfoReader(new File(client.getUploadPath()), client.getId(), client.getExtension());
+            try {
+                reader.run();
+            }
+            catch (WrongFileFormatException e) {
+                client.setErrorMSG(e.getMessage());
                 next = FILE;
                 ERROR.writeToClient(botContext, client);
                 return;
-            } else if (ret == 2) {
-                client.setErrorMSG("В dxf файле не найдено замкнутых полилиний и блоков");
+            } catch (Exception e) {
                 next = FILE;
-                ERROR.writeToClient(botContext, client);
-                return;
-            } else if (ret == -1) {
-                next = FILE;
-                client.setErrorMSG("Проблемы на сервере. Попробуйте чуть позднее");
+                client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
                 ERROR.writeToClient(botContext, client);
                 return;
             }
             next = CHOOSE_OUTPUT_FILE_OPTION;
-            client.setInfoReader(c);
+            client.setInfoReader(reader);
             client.setState(next.ordinal());
         }
 
@@ -432,15 +448,13 @@ public enum BotState {
         }
     }
 
-    public int sendMessage(BotContext botContext, SendMessage sm) {
+    public void sendMessage(BotContext botContext, SendMessage sm) {
         sm.setChatId(botContext.getChat().getId());
         try {
             botContext.getBot().execute(sm);
         } catch (TelegramApiException e) {
             e.printStackTrace();
-            return (0);
         }
-        return (1);
     }
 
     private void findExtension(String path, Client client) {
@@ -452,7 +466,7 @@ public enum BotState {
         }
     }
 
-    public int uploadFile(BotContext botContext, Client client) {
+    public void uploadFile(BotContext botContext, Client client) throws Exception {
         Document doc = botContext.getMessage().getDocument();
         try {
             URL url = new URL("https://api.telegram.org/bot"
@@ -466,7 +480,7 @@ public enum BotState {
             findExtension(file_path, client);
             URL downoload = new URL("https://api.telegram.org/file/bot" + botContext.getToken() + "/" + file_path);
             if (client.getExtension().equals("kmz"))
-                return (uploadZIP(downoload, client));
+               uploadZIP(downoload, client);
             Writer fw = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()), StandardCharsets.UTF_8);
             String charset;
             if (client.getExtension().equalsIgnoreCase("csv"))
@@ -481,26 +495,19 @@ public enum BotState {
             uploadIn.close();
             in.close();
             System.out.println("Uploaded!");
-        } catch (MalformedURLException e) {
-            System.out.println("URL error");
-            return (0);
         } catch (IOException e) {
-            System.out.println("openStream error");
-            return (0);
+            throw new UploadFileException("Проблема с загрузкой файла с сервера Телеграм", e);
         }
-        return (1);
     }
 
-    public int uploadZIP(URL download, Client client) {
-        try {
+    public void uploadZIP(URL download, Client client) throws UploadFileException {
+        try (
             ReadableByteChannel rbc = Channels.newChannel(download.openStream());
-            FileOutputStream fos = new FileOutputStream(client.getUploadPath());
+            FileOutputStream fos = new FileOutputStream(client.getUploadPath())) {
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
         } catch (IOException e) {
-            e.printStackTrace();
-            return (0);
+            throw new UploadFileException("Проблема с загрузкой kmz-архива с серверa Telegram", e);
         }
-        return (1);
     }
 
     public synchronized void setInlineKeyboard(SendMessage sm, ArrayList<String> buttons, String... helpers) {
