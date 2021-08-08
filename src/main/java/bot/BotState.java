@@ -315,13 +315,16 @@ public enum BotState {
                 sendMessage(botContext, sm);
                 next = FILE;
                 client.setState(next.ordinal());
-            } catch (IOException e) {
-                client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
-                LogUtil.log(Level.SEVERE, BotState.EXECUTE.name(), client, e);
-            } catch (Proj4jException | IllegalStateException e) {
-                client.setErrorMSG("Ошибка трансформации");
-                TRANSFORM_ERROR.writeToClient(botContext, client);
-                client.setState(FILE.ordinal());
+            } catch (Exception e) {
+                if (e instanceof Proj4jException || e instanceof IllegalStateException) {
+                    client.setErrorMSG("Ошибка трансформации");
+                    TRANSFORM_ERROR.writeToClient(botContext, client);
+                } else {
+                    client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                    ERROR.writeToClient(botContext, client);
+                }
+                next = FILE;
+                client.setState(next.ordinal());
                 LogUtil.log(Level.SEVERE, BotState.EXECUTE.name(), client, e);
             }
         }

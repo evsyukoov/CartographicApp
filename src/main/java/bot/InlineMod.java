@@ -34,9 +34,7 @@ public class InlineMod {
             answerInlineQuery.setResults(prepareSimpleAnswer());
         } else {
             List<InlineQueryResult> result = prepareQueryAnswer(update.getInlineQuery().getQuery());
-            if (!result.isEmpty()) {
-                answerInlineQuery.setResults(prepareQueryAnswer(update.getInlineQuery().getQuery()));
-            }
+            answerInlineQuery.setResults(result);
         }
         try {
             bot.execute(answerInlineQuery);
