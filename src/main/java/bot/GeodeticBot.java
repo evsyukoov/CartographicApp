@@ -17,10 +17,8 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 
 public class GeodeticBot extends TelegramLongPollingBot {
-
-    private static DataAccessObject dao;
-    final String token = "1418694554:AAE-RAWPAq8R6Z50k4uqu4RVhBXHyxYqu3I";
-    private final String botName = "SurveyGeoBot";
+    final String token = "";
+    private final String botName = "";
 
     public static LinkedList<Client> clients;
 
