@@ -20,6 +20,7 @@ public class InlineDataAccessObject extends DataAccessObject{
         innerFind(ps, receive, result);
         if (result.isEmpty()) {
             receive = transliteration(receive);
+            System.out.println(receive);;
             innerFind(ps, receive, result);
         }
         result.sort(String::compareTo);

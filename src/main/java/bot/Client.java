@@ -3,12 +3,12 @@ package bot;
 import bot.enums.OutputFileType;
 import bot.enums.TransType;
 import convert.InfoReader;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 
 public class Client {
 
     //для удобства логирования
     String name;
-
 
     public String getName() {
         return name;
@@ -110,11 +110,14 @@ public class Client {
         return savePath;
     }
 
-    public Client(long id) {
+    public Client(long id, Chat chat) {
         this.id = id;
         uploadPath = "./src/main/resources/uploaded/" + "file_" + id;
         isClientReady = false;
         savePath = "./src/main/resources/send/" + id;
+        name = String.format("%s %s(%s)",chat.getFirstName() == null ? "" : chat.getFirstName(),
+                chat.getLastName() == null ? "" : chat.getLastName(), chat.getUserName() == null ?
+                        "no nickname" : chat.getUserName());
     }
 
     public void setState(int state) {

@@ -1,6 +1,7 @@
 package bot;
 
 import dao.InlineDataAccessObject;
+import logging.LogUtil;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -20,9 +21,6 @@ public class InlineMod {
     Update update;
     GeodeticBot bot;
 
-    private static final Logger logger = Logger.getLogger(InlineMod.class.getName());
-
-
     public InlineMod(Update update, GeodeticBot bot) {
         this.update = update;
         this.bot = bot;
@@ -35,12 +33,15 @@ public class InlineMod {
         if (update.getInlineQuery().getQuery().length() < 3) {
             answerInlineQuery.setResults(prepareSimpleAnswer());
         } else {
-            answerInlineQuery.setResults(prepareQueryAnswer(update.getInlineQuery().getQuery()));
+            List<InlineQueryResult> result = prepareQueryAnswer(update.getInlineQuery().getQuery());
+            if (!result.isEmpty()) {
+                answerInlineQuery.setResults(prepareQueryAnswer(update.getInlineQuery().getQuery()));
+            }
         }
         try {
             bot.execute(answerInlineQuery);
         } catch (TelegramApiException e) {
-            logger.log(Level.SEVERE, "Problem with sending inline answer");
+            LogUtil.log(Level.SEVERE, InlineMod.class.getName(), e);
         }
     }
 

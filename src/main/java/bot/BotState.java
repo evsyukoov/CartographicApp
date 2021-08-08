@@ -7,6 +7,7 @@ import bot.enums.OutputFileType;
 import bot.enums.TransType;
 import convert.InfoReader;
 import dao.SelectDataAccessObject;
+import logging.LogUtil;
 import org.json.JSONObject;
 import org.osgeo.proj4j.Proj4jException;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
@@ -16,6 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.sound.sampled.LineEvent;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -24,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 public enum BotState {
 
@@ -49,7 +52,6 @@ public enum BotState {
     },
     //1
     FILE {
-
         private BotState next;
 
         @Override
@@ -66,19 +68,19 @@ public enum BotState {
             if ((next = helpersCasesAnalize(botContext, client, FILE)) != null)
                 return;
             String text;
-            //получили от клиента строку
+            //получили от клиента текст
             if ((text = botContext.getMessage().getText()) != null) {
                 InfoReader c = new InfoReader(text);
                 try {
                     c.readText();
-                } catch (WrongFileFormatException e){
-                    next = FILE;
-                    client.setErrorMSG(e.getMessage());
-                    ERROR.writeToClient(botContext, client);
-                    return;
                 } catch (Exception e) {
+                    if (e instanceof WrongFileFormatException) {
+                        client.setErrorMSG(e.getMessage());
+                    } else {
+                        client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                    }
                     next = FILE;
-                    client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                    LogUtil.log(Level.SEVERE, BotState.FILE.name(), client, e);
                     ERROR.writeToClient(botContext, client);
                     return;
                 }
@@ -92,33 +94,31 @@ public enum BotState {
             if (botContext.getMessage().getDocument() != null) {
                 try {
                     uploadFile(botContext, client);
-                } catch (UploadFileException e) {
-                    next = FILE;
-                    client.setErrorMSG(e.getMessage());
-                    client.setState(FILE.ordinal());
-                    ERROR.writeToClient(botContext, client);
-                    return;
                 } catch (Exception e) {
+                    if (e instanceof UploadFileException) {
+                        client.setErrorMSG(e.getMessage());
+                    } else {
+                        client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                    }
                     next = FILE;
-                    client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
                     client.setState(FILE.ordinal());
                     ERROR.writeToClient(botContext, client);
+                    LogUtil.log(Level.SEVERE, BotState.FILE.name(), client, e);
                     return;
                 }
             }
             InfoReader reader = new InfoReader(new File(client.getUploadPath()), client.getId(), client.getExtension());
             try {
                 reader.run();
-            }
-            catch (WrongFileFormatException e) {
-                client.setErrorMSG(e.getMessage());
-                next = FILE;
-                ERROR.writeToClient(botContext, client);
-                return;
             } catch (Exception e) {
+                if (e instanceof WrongFileFormatException) {
+                    client.setErrorMSG(e.getMessage());
+                } else {
+                    client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                }
                 next = FILE;
-                client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
                 ERROR.writeToClient(botContext, client);
+                LogUtil.log(Level.SEVERE, BotState.FILE.name(), client, e);
                 return;
             }
             next = CHOOSE_OUTPUT_FILE_OPTION;
@@ -183,7 +183,7 @@ public enum BotState {
                 }
                 String recv = botContext.getUpdate().getCallbackQuery().getData();
                 if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS && (recv.equals("GPX")
-                        || recv.equals("KML"))) {
+                        || recv.equals("KML") || recv.equals("CSV(WGS-84)"))) {
                     client.setState(EXECUTE.ordinal());
                     client.setTransType(TransType.WGS_TO_WGS);
                     next = EXECUTE;
@@ -305,7 +305,6 @@ public enum BotState {
         @Override
         public void writeToClient(BotContext botContext, Client client) {
             GeneratorManager gm = new GeneratorManager(client);
-            //TODO добавить логирование эксепшнов
             try {
                 gm.run();
                 sendFile(botContext, gm.getOutput());
@@ -317,12 +316,13 @@ public enum BotState {
                 next = FILE;
                 client.setState(next.ordinal());
             } catch (IOException e) {
-                System.out.println("Кривой сервер");
-                e.printStackTrace();
+                client.setErrorMSG("Неизвестная ошибка. Обратитесь в техподдержку.");
+                LogUtil.log(Level.SEVERE, BotState.EXECUTE.name(), client, e);
             } catch (Proj4jException | IllegalStateException e) {
                 client.setErrorMSG("Ошибка трансформации");
                 TRANSFORM_ERROR.writeToClient(botContext, client);
                 client.setState(FILE.ordinal());
+                LogUtil.log(Level.SEVERE, BotState.EXECUTE.name(), client, e);
             }
         }
 
@@ -444,7 +444,7 @@ public enum BotState {
         try {
             botContext.getBot().execute(doc);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            LogUtil.log(Level.SEVERE, "SendFile", e);
         }
     }
 
@@ -453,7 +453,7 @@ public enum BotState {
         try {
             botContext.getBot().execute(sm);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            LogUtil.log(Level.SEVERE, "SendMessage", e);
         }
     }
 
@@ -480,7 +480,7 @@ public enum BotState {
             findExtension(file_path, client);
             URL downoload = new URL("https://api.telegram.org/file/bot" + botContext.getToken() + "/" + file_path);
             if (client.getExtension().equals("kmz"))
-               uploadZIP(downoload, client);
+                uploadZIP(downoload, client);
             Writer fw = new OutputStreamWriter(new FileOutputStream(client.getUploadPath()), StandardCharsets.UTF_8);
             String charset;
             if (client.getExtension().equalsIgnoreCase("csv"))
@@ -502,8 +502,8 @@ public enum BotState {
 
     public void uploadZIP(URL download, Client client) throws UploadFileException {
         try (
-            ReadableByteChannel rbc = Channels.newChannel(download.openStream());
-            FileOutputStream fos = new FileOutputStream(client.getUploadPath())) {
+                ReadableByteChannel rbc = Channels.newChannel(download.openStream());
+                FileOutputStream fos = new FileOutputStream(client.getUploadPath())) {
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
         } catch (IOException e) {
             throw new UploadFileException("Проблема с загрузкой kmz-архива с серверa Telegram", e);
