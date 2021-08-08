@@ -70,6 +70,9 @@ public class GeodeticBot extends TelegramLongPollingBot {
             bs = BotState.getStatement(client.getState());
             bs.readFromClient(botContext, client);
             bs = bs.next(botContext);
+            if (bs == null) {
+                return;
+            }
             bs.writeToClient(botContext, client);
             if (client.getClientReady()) {
                 LogUtil.log(GeodeticBot.class.getName(), client,

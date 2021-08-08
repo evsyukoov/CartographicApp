@@ -68,7 +68,9 @@ public enum BotState {
             if ((next = helpersCasesAnalize(botContext, client, FILE)) != null)
                 return;
             String text;
-            //получили от клиента текст
+            if (botContext.getMessage() == null) {
+                return;
+            }
             if ((text = botContext.getMessage().getText()) != null) {
                 InfoReader c = new InfoReader(text);
                 try {
@@ -172,15 +174,15 @@ public enum BotState {
 
         @Override
         public void readFromClient(BotContext botContext, Client client) {
+            client.setPrevState(CHOOSE_OUTPUT_FILE_OPTION.ordinal() - 1);
+            if ((next = helpersCasesAnalize(botContext, client, CHOOSE_OUTPUT_FILE_OPTION)) != null) {
+                return;
+            }
             if (!isCallbackData(botContext)) {
                 client.setErrorMSG("Неизвестная команда\nВыберите формат выходного файла");
                 next = CHOOSE_OUTPUT_FILE_OPTION;
                 ERROR.writeToClient(botContext, client);
             } else {
-                client.setPrevState(CHOOSE_OUTPUT_FILE_OPTION.ordinal() - 1);
-                if ((next = helpersCasesAnalize(botContext, client, CHOOSE_OUTPUT_FILE_OPTION)) != null) {
-                    return;
-                }
                 String recv = botContext.getUpdate().getCallbackQuery().getData();
                 if (client.getInfoReader().getInputCoordinatesType() == InputCoordinatesType.WGS && (recv.equals("GPX")
                         || recv.equals("KML") || recv.equals("CSV(WGS-84)"))) {
@@ -235,6 +237,9 @@ public enum BotState {
             client.setPrevState(CHOOSE_SYSTEM_COORDINATE_SRC.ordinal() - 1);
             if ((next = helpersCasesAnalize(botContext, client, CHOOSE_SYSTEM_COORDINATE_SRC)) != null)
                 return;
+            if (botContext.getMessage() == null) {
+                return;
+            }
             String param = SelectDataAccessObject.
                     findCoordinateSystemParam(botContext.getMessage().getText());
             if (param == null) {
@@ -278,6 +283,9 @@ public enum BotState {
             client.setPrevState(CHOOSE_SYSTEM_COORDINATE_TGT.ordinal() - 1);
             if ((next = helpersCasesAnalize(botContext, client, CHOOSE_SYSTEM_COORDINATE_TGT)) != null)
                 return;
+            if (botContext.getMessage() == null) {
+                return;
+            }
             String param = SelectDataAccessObject.
                     findCoordinateSystemParam(botContext.getMessage().getText());
             if (param == null) {
