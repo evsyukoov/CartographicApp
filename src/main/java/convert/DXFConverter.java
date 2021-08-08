@@ -52,15 +52,6 @@ public class DXFConverter {
         else if (Character.isDigit(line.charAt(0)))
             pline.addPoint(parsePoint(line));
     }
-
-    private void checkBlocksAndLines()
-    {
-        if (blocks.isEmpty())
-            blocks = null;
-        if (plines.isEmpty())
-            plines = null;
-    }
-
     //сам конвертер написан на с++ с использованием dxflib
     public void parseDXF() throws Exception {
         Runtime r = Runtime.getRuntime();
@@ -76,7 +67,6 @@ public class DXFConverter {
 
         is.close();
         br.close();
-        checkBlocksAndLines();
         int exitValue = p.waitFor();
         if (exitValue == 0) {
             throw new WrongFileFormatException("Неизвестная ошибка во время парсинга dxf файла. Сообщите техподдержке");
