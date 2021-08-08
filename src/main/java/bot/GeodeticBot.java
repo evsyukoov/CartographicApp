@@ -17,8 +17,8 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 
 public class GeodeticBot extends TelegramLongPollingBot {
-    final String token = "";
-    private final String botName = "";
+    final String token = "tokenToReplace";
+    private final String botName = "botNameToReplace";
 
     public static LinkedList<Client> clients;
 
