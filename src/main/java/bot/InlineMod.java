@@ -12,10 +12,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class InlineMod {
     Update update;
@@ -43,7 +42,7 @@ public class InlineMod {
         }
     }
 
-    private InlineQueryResult prepareSimpleAnswer()
+    private List<InlineQueryResult> prepareSimpleAnswer()
     {
         InlineQueryResultArticle inlineQueryResultArticle = new InlineQueryResultArticle();
         InputTextMessageContent itmc = new InputTextMessageContent();
@@ -51,7 +50,7 @@ public class InlineMod {
         itmc.setMessageText("Начните вводить свою систему координат(хотя бы 3 буквы)");
         inlineQueryResultArticle.setInputMessageContent(itmc);
         inlineQueryResultArticle.setTitle("Начните вводить свою систему координат(хотя бы 3 буквы)");
-        return inlineQueryResultArticle;
+        return Collections.singletonList(inlineQueryResultArticle);
     }
 
     private List<InlineQueryResult> prepareQueryAnswer(String receive) throws SQLException {

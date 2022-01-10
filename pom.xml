@@ -6,7 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>IngGeoBot</artifactId>
-    <version>1.0</version>
+    <version>1.1.0</version>
 
     <build>
         <plugins>
@@ -62,11 +62,14 @@
         </dependency>
 
 
+        <!-- https://mvnrepository.com/artifact/org.telegram/telegrambots -->
+        <!-- https://mvnrepository.com/artifact/org.telegram/telegrambots -->
         <dependency>
             <groupId>org.telegram</groupId>
             <artifactId>telegrambots</artifactId>
-            <version>4.9</version>
+            <version>5.6.0</version>
         </dependency>
+
 
         <dependency>
             <groupId>mysql</groupId>

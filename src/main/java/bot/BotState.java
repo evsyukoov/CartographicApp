@@ -13,11 +13,11 @@ import org.osgeo.proj4j.Proj4jException;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import javax.sound.sampled.LineEvent;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -450,8 +450,8 @@ public enum BotState {
 
     public void sendFile(BotContext botContext, File file) {
         SendDocument doc = new SendDocument();
-        doc.setDocument(file);
-        doc.setChatId(botContext.getChat().getId());
+        doc.setDocument(new InputFile(file));
+        doc.setChatId(String.valueOf(botContext.getChat().getId()));
         try {
             botContext.getBot().execute(doc);
         } catch (TelegramApiException e) {
@@ -460,7 +460,7 @@ public enum BotState {
     }
 
     public void sendMessage(BotContext botContext, SendMessage sm) {
-        sm.setChatId(botContext.getChat().getId());
+        sm.setChatId(String.valueOf(botContext.getChat().getId()));
         try {
             botContext.getBot().execute(sm);
         } catch (TelegramApiException e) {
@@ -530,12 +530,18 @@ public enum BotState {
                 row = new ArrayList<>();
                 rows.add(row);
             }
-            row.add(new InlineKeyboardButton().setText(buttons.get(i))
-                    .setCallbackData(buttons.get(i)));
+            row.add(newButton(buttons.get(i)));
         }
         setHelpers(rows, helpers);
         inlineKeyboard.setKeyboard(rows);
         sm.setReplyMarkup(inlineKeyboard);
+    }
+
+    private InlineKeyboardButton newButton(String message) {
+        return InlineKeyboardButton.builder()
+                .text(message)
+                .callbackData(message)
+                .build();
     }
 
     public synchronized void setInlineKeyboard(SendMessage sm, String... helpers) {
@@ -549,7 +555,7 @@ public enum BotState {
     private synchronized void setHelpers(List<List<InlineKeyboardButton>> rows, String... helpers) {
         List<InlineKeyboardButton> row = new ArrayList<>();
         for (String s : helpers) {
-            row.add(new InlineKeyboardButton().setText(s).setCallbackData(s));
+            row.add(newButton(s));
         }
         rows.add(row);
     }
