@@ -13,4 +13,4 @@ kill -9 "$port"
 sh ../start_scrypt.sh
 #сборка и старт
 mvn package
-nohup java -jar target/TransformBot-1.0-SNAPSHOT.jar &
+nohup java -jar target/TransformBot-1.2.0-SNAPSHOT.jar &
