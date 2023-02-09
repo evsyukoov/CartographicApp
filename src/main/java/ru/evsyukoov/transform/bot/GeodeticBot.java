@@ -7,12 +7,15 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import ru.evsyukoov.transform.handlers.InlineMessageHandler;
+import ru.evsyukoov.transform.handlers.MessageHandler;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
 import javax.annotation.PostConstruct;
+import java.util.List;
 import java.util.TimeZone;
 
 
@@ -26,12 +29,12 @@ public class GeodeticBot extends TelegramLongPollingBot {
 
     private String botName;
 
-    private final InlineMessageHandler inlineHandler;
+    private final MessageHandler messageHandler;
 
     @Autowired
-    public GeodeticBot(ThreadPoolTaskExecutor executor, InlineMessageHandler inlineHandler) {
+    public GeodeticBot(ThreadPoolTaskExecutor executor, MessageHandler messageHandler) {
         this.executor = executor;
-        this.inlineHandler = inlineHandler;
+        this.messageHandler = messageHandler;
     }
 
 
@@ -45,61 +48,25 @@ public class GeodeticBot extends TelegramLongPollingBot {
         this.botName = botName;
     }
 
-//    public void botAction(Update update) {
-//        BotState bs;
-//        Client client = null;
-//        try {
-//            if (update.getInlineQuery() != null) {
-//                inlineAction(update);
-//                return;
-//            }
-//            Chat chat;
-//            if (update.getCallbackQuery() != null) {
-//                chat = update.getCallbackQuery().getMessage().getChat();
-//            } else {
-//                chat = update.getMessage().getChat();
-//            }
-//            long id = chat.getId();
-//            BotContext botContext = new BotContext(this, update.getMessage(), token, update, chat);
-//            if ((client = getClientFromId(id)) == null) {
-//                ClientDataAccessObject.addToDataBase
-//                        (id, chat.getFirstName(), chat.getLastName(), chat.getUserName());
-//                client = new Client(id, chat);
-//                clients.add(client);
-//                client.setState(1);
-//            }
-//            LogUtil.log(GeodeticBot.class.getName(), client);
-//            bs = BotState.getStatement(client.getState());
-//            bs.readFromClient(botContext, client);
-//            bs = bs.next(botContext);
-//            if (bs == null) {
-//                return;
-//            }
-//            bs.writeToClient(botContext, client);
-//            if (client.getClientReady()) {
-//                LogUtil.log(GeodeticBot.class.getName(), client,
-//                        "Was succesfully cancelled full circle");
-//            }
-//        } catch (SQLException throwables) {
-//            LogUtil.log(Level.SEVERE, GeodeticBot.class.getName(), client, throwables);
-//        }
-//    }
-
     @Override
     public void onUpdateReceived(Update update) {
         executor.execute(() -> {
             try {
                 if (TelegramUtils.isInlineMessage(update)) {
-                    this.execute(inlineHandler.getInlineAnswer(update));
-                    return;
-                }
-                if (TelegramUtils.isTextDocumentOrCallbackMessage(update)) {
-                    log.info("Implementation");
+                    this.execute(messageHandler.prepareInline(update));
+                } else if (TelegramUtils.isTextDocumentOrCallbackMessage(update)) {
+                    sendMessages(messageHandler.prepareMessage(update));
                 }
             } catch (Exception e) {
                 log.error("Error: ", e);
             }
         });
+    }
+
+    private void sendMessages(List<BotApiMethod<?>> messages) throws TelegramApiException {
+        for (BotApiMethod<?> method : messages) {
+            this.execute(method);
+        }
     }
 
     @Override

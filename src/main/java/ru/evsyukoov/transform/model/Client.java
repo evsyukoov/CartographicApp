@@ -1,6 +1,7 @@
 package ru.evsyukoov.transform.model;
 
 import ru.evsyukoov.transform.bot.BotState;
+import ru.evsyukoov.transform.stateMachine.State;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -24,7 +25,7 @@ public class Client {
 
     @Column(name = "state")
     @Enumerated
-    private BotState state;
+    private State state;
 
     @Column(name = "count")
     private int count;
@@ -53,11 +54,11 @@ public class Client {
         this.nickName = nickName;
     }
 
-    public BotState getState() {
+    public State getState() {
         return state;
     }
 
-    public void setState(BotState state) {
+    public void setState(State state) {
         this.state = state;
     }
 
