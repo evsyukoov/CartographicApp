@@ -1,61 +1,39 @@
 package ru.evsyukoov.transform.handlers;
 
-import com.ibm.icu.text.Transliterator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.inputmessagecontent.InputTextMessageContent;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResult;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultArticle;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.model.Client;
-import ru.evsyukoov.transform.model.CoordinateSystem;
-import ru.evsyukoov.transform.repository.ClientRepository;
-import ru.evsyukoov.transform.repository.CoordinateSystemRepository;
+import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.stateMachine.BotState;
 import ru.evsyukoov.transform.stateMachine.BotStateFactory;
-import ru.evsyukoov.transform.stateMachine.State;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class MessageHandler {
 
-    private final Transliterator latinToCyrillic;
-
-    private final Transliterator cyrillicToLatin;
-
-    private final CoordinateSystemRepository coordinateSystemRepository;
-
-    private final ClientRepository clientRepository;
+    private final DataService dataService;
 
     private final BotStateFactory stateFactory;
 
-    @Value("${bot.max-result}")
-    private Integer maxResult;
-
     @Autowired
-    public MessageHandler(ClientRepository clientRepository,
-                          Transliterator latinToCyrillic,
-                          Transliterator cyrillicToLatin,
-                          CoordinateSystemRepository coordinateSystemRepository,
+    public MessageHandler(DataService dataService,
                           BotStateFactory stateFactory) {
-        this.clientRepository = clientRepository;
-        this.latinToCyrillic = latinToCyrillic;
-        this.cyrillicToLatin = cyrillicToLatin;
-        this.coordinateSystemRepository = coordinateSystemRepository;
         this.stateFactory = stateFactory;
+        this.dataService = dataService;
     }
 
     public List<BotApiMethod<?>> prepareMessage(Update update) {
@@ -65,23 +43,26 @@ public class MessageHandler {
         } else {
             clientId = update.getMessage().getChatId();
         }
-        Client client = clientRepository.findClientById(clientId);
+        Client client = dataService.findClientById(clientId);
         if (client == null) {
-            log.info("Successfully add new client with id {} to database", clientId);
-            client = createNewClient(clientId);
-            clientRepository.save(client);
+            client = dataService.createNewClient(clientId, getName(update), getNickName(update));
         }
         BotState currentState = stateFactory.initState(client);
         List<BotApiMethod<?>> start = currentState.handleStartMessage(client, update);
+        if (start != null) {
+            dataService.moveClientToStart(client, false);
+        }
         return start == null ? currentState.handleMessage(client, update) : start;
     }
 
-    private Client createNewClient(long id) {
-        Client client = new Client();
-        client.setId(id);
-        client.setState(State.INPUT);
-        client.setCount(0);
-        return client;
+    private String getName(Update update) {
+        Chat chat = update.getMessage().getChat();
+        return chat.getFirstName()
+                + (chat.getLastName() == null ? "" : (" " + chat.getLastName()));
+    }
+
+    private String getNickName(Update update) {
+        return update.getMessage().getChat().getUserName();
     }
 
     public AnswerInlineQuery prepareInline(Update update) {
@@ -108,10 +89,7 @@ public class MessageHandler {
 
     private List<InlineQueryResult> prepareQueryAnswer(String receive) {
         List<InlineQueryResult> result = new ArrayList<>();
-        List<String> projects = filterStrings(receive);
-        if (CollectionUtils.isEmpty(projects)) {
-            projects = filterStrings(transliterateString(receive));
-        }
+        List<String> projects = dataService.findCoordinateSystemsByPattern(receive);
         int i = 0;
         for (String project : projects) {
             InlineQueryResultArticle inlineQueryResultArticle = new InlineQueryResultArticle();
@@ -123,28 +101,5 @@ public class MessageHandler {
             result.add(inlineQueryResultArticle);
         }
         return result;
-    }
-
-    private List<String> filterStrings(String text) {
-        return coordinateSystemRepository
-                .findCoordinateSystemByDescriptionLikeIgnoreCase("%" + text + "%")
-                .stream()
-                .limit(maxResult)
-                .map(CoordinateSystem::getDescription)
-                .collect(Collectors.toList());
-    }
-
-    private String transliterateString(String text) {
-        if (isCyrillic(text)) {
-            return cyrillicToLatin.transliterate(text);
-        } else {
-            return latinToCyrillic.transliterate(text);
-        }
-    }
-
-    private boolean isCyrillic(String text) {
-        return text.chars()
-                .mapToObj(Character.UnicodeBlock::of)
-                .anyMatch(Character.UnicodeBlock.CYRILLIC::equals);
     }
 }

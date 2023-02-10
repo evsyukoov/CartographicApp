@@ -1,6 +1,5 @@
 package ru.evsyukoov.transform.model;
 
-import ru.evsyukoov.transform.bot.BotState;
 import ru.evsyukoov.transform.stateMachine.State;
 
 import javax.persistence.Column;
@@ -26,6 +25,10 @@ public class Client {
     @Column(name = "state")
     @Enumerated
     private State state;
+
+    @Column(name = "previous_state")
+    @Enumerated
+    private State previousState;
 
     @Column(name = "count")
     private int count;
@@ -68,5 +71,25 @@ public class Client {
 
     public void setCount(int count) {
         this.count = count;
+    }
+
+    public State getPreviousState() {
+        return previousState;
+    }
+
+    public void setPreviousState(State previousState) {
+        this.previousState = previousState;
+    }
+
+    @Override
+    public String toString() {
+        return "Client{" +
+                "id=" + id +
+                ", userName='" + userName + '\'' +
+                ", nickName='" + nickName + '\'' +
+                ", state=" + state +
+                ", previousState=" + previousState +
+                ", count=" + count +
+                '}';
     }
 }
