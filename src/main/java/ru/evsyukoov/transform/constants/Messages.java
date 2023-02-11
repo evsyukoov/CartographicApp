@@ -16,4 +16,8 @@ public final class Messages {
 
     public final static String WRONG_FORMAT_MESSAGE = "Неизвестный формат отправленного сообщения";
 
+    public final static String WRONG_FILE_EXTENSION = "Неизвестное расширение файла";
+
+    public final static String ERROR_WHILE_UPLOADING_FILE = "Произошла ошибка во время загрузки файла. Попробуйте снова.";
+
 }

@@ -28,3 +28,6 @@ bot:
   token: ${CARTOGRAPHIC_BOT_TOKEN}
   name: ${CARTOGRAPHIC_BOT_NAME}
   max-result: 30
+
+file-storage:
+  upload: ./uploaded
