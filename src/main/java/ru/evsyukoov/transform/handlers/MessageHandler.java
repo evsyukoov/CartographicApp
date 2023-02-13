@@ -15,6 +15,7 @@ import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.stateMachine.BotState;
 import ru.evsyukoov.transform.stateMachine.BotStateFactory;
+import ru.evsyukoov.transform.stateMachine.State;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
 import java.util.ArrayList;
@@ -46,6 +47,9 @@ public class MessageHandler {
         Client client = dataService.findClientById(clientId);
         if (client == null) {
             client = dataService.createNewClient(clientId, getName(update), getNickName(update));
+        }
+        if (client.getState() == null) {
+            client.setState(State.INPUT);
         }
         BotState currentState = stateFactory.initState(client);
         List<BotApiMethod<?>> start = currentState.handleStartMessage(client, update);

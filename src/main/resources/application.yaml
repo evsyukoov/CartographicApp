@@ -31,3 +31,6 @@ bot:
 
 file-storage:
   upload: ./uploaded
+
+parser:
+  text-delimetr: ";"
