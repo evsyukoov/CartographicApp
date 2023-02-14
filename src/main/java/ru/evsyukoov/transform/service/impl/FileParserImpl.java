@@ -1,8 +1,13 @@
 package ru.evsyukoov.transform.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.kabeja.dxf.DXFDocument;
+import org.kabeja.parser.DXFParser;
+import org.kabeja.parser.ParseException;
+import org.kabeja.parser.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -12,14 +17,18 @@ import org.xml.sax.SAXException;
 import ru.evsyukoov.transform.convert.Point;
 import ru.evsyukoov.transform.dto.FileInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
+import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
 import ru.evsyukoov.transform.service.FileParser;
 
 import javax.xml.parsers.DocumentBuilder;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Service
 @Slf4j
@@ -32,9 +41,12 @@ public class FileParserImpl implements FileParser {
 
     private final DocumentBuilder documentBuilder;
 
+    private final ApplicationContext context;
+
     @Autowired
-    public FileParserImpl(DocumentBuilder documentBuilder) {
+    public FileParserImpl(DocumentBuilder documentBuilder, Parser dxfParser, ApplicationContext context) {
         this.documentBuilder = documentBuilder;
+        this.context = context;
     }
 
     @Override
@@ -109,7 +121,20 @@ public class FileParserImpl implements FileParser {
 
     @Override
     public FileInfo parseKmz(InputStream inputStream) throws IOException {
-        return null;
+        FileInfo fileInfo = new FileInfo();
+        try (ZipInputStream zis = new ZipInputStream(inputStream)) {
+            ZipEntry entry;
+            String name;
+            while ((entry = zis.getNextEntry()) != null && !entry.isDirectory()) {
+                name = entry.getName();
+                if (!name.substring(name.indexOf('.') + 1).equalsIgnoreCase(FileFormat.KML.name()))
+                    continue;
+                ByteArrayInputStream baos = new ByteArrayInputStream(zis.readAllBytes());
+                fileInfo.getPoints().addAll(parseKml(baos).getPoints());
+                zis.closeEntry();
+            }
+        }
+        return fileInfo;
     }
 
     @Override
@@ -144,6 +169,14 @@ public class FileParserImpl implements FileParser {
 
     @Override
     public FileInfo parseDxf(InputStream inputStream) {
+        Parser dxfParser = context.getBean(Parser.class);
+        try {
+            dxfParser.parse(inputStream, DXFParser.DEFAULT_ENCODING);
+            DXFDocument document = dxfParser.getDocument();
+            log.info("Successfully parse DXF file");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 

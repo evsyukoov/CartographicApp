@@ -21,12 +21,14 @@ import ru.evsyukoov.transform.utils.TelegramUtils;
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -139,7 +141,11 @@ public class InputBotState implements BotState {
             String charset = (format == FileFormat.CSV || format == FileFormat.TXT) ? "windows-1251" : "UTF-8";
             String localFileName = String.format("%s/%d.%s", fileStoragePath, id, format.name());
             inputInfo = new FileAbout(downloadLink.openStream(), charset, format);
-            downloadFileAndSave(downloadLink.openStream(), new File(localFileName), charset);
+            if (format != FileFormat.KMZ) {
+                downloadTextFileAndSave(downloadLink.openStream(), new File(localFileName), charset);
+            } else {
+                uploadZipFileAndSave(downloadLink.openStream(), new File(localFileName));
+            }
             log.info("Successfully download file {}", localFileName);
         } catch (IOException e) {
             log.error("Problem with downloading file from telegram servers: ", e);
@@ -148,13 +154,20 @@ public class InputBotState implements BotState {
         return inputInfo;
     }
 
-    private void downloadFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException{
+    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException{
         try (FileWriter fw = new FileWriter(localFile);
              BufferedReader uploadIn = new BufferedReader(new InputStreamReader(serverInputStream, charset))) {
             String s;
             while ((s = uploadIn.readLine()) != null) {
                 fw.write(String.format("%s\n", s));
             }
+        }
+    }
+
+    public void uploadZipFileAndSave(InputStream serverInputStream, File localFile) throws IOException {
+        try (ReadableByteChannel rbc = Channels.newChannel(serverInputStream);
+             FileOutputStream fos = new FileOutputStream(localFile)) {
+            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
         }
     }
 

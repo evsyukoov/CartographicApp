@@ -25,7 +25,7 @@ public interface FileParser {
     FileInfo parseKml(InputStream inputStream) throws IOException;
 
     /**
-     * Архив, состоящий из нескольких KML файлов
+     * Архив, состоящий из нескольких KML файлов и папок с графическим отображением меток (игнорируем)
      * @param inputStream
      * @return
      * @throws IOException
