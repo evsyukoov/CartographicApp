@@ -136,10 +136,17 @@
 
         <!-- https://mvnrepository.com/artifact/net.sourceforge/kabeja -->
         <dependency>
-            <groupId>net.sourceforge</groupId>
-            <artifactId>kabeja</artifactId>
-            <version>0.4</version>
+            <groupId>org.kabeja</groupId>
+            <artifactId>tfly-kabeja-core</artifactId>
+            <version>0.5.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.kabeja</groupId>
+            <artifactId>tfly-kabeja-dxf</artifactId>
+            <version>0.5.2</version>
+        </dependency>
+
 
     </dependencies>
 

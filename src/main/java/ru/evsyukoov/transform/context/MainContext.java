@@ -1,8 +1,8 @@
 package ru.evsyukoov.transform.context;
 
 import com.ibm.icu.text.Transliterator;
+import org.kabeja.dxf.parser.DXFParserBuilder;
 import org.kabeja.parser.Parser;
-import org.kabeja.parser.ParserBuilder;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,7 +57,7 @@ public class MainContext {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     Parser dxfParser() {
-        return ParserBuilder.createDefaultParser();
+        return DXFParserBuilder.createDefaultParser();
     }
 
 }

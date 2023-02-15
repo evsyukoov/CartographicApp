@@ -79,26 +79,7 @@ public class InputBotState implements BotState {
                     fileInfo = fileParser.parseText(update.getMessage().getText());
                 } else if (TelegramUtils.isDocumentMessage(update)) {
                     FileAbout about  = downloadFile(update, client.getId());
-                    switch (about.fileFormat) {
-                        case CSV:
-                            fileInfo = fileParser.parseCsv(about.contentStream, about.charset);
-                            break;
-                        case KML:
-                            fileInfo = fileParser.parseKml(about.contentStream);
-                            break;
-                        case GPX:
-                            fileInfo = fileParser.parseGpx(about.contentStream);
-                            break;
-                        case DXF:
-                            fileInfo = fileParser.parseDxf(about.contentStream);
-                            break;
-                        case TXT:
-                            fileInfo = fileParser.parseTxt(about.contentStream, about.charset);
-                            break;
-                        case KMZ:
-                            fileInfo = fileParser.parseKmz(about.contentStream);
-                            break;
-                    }
+                    fileInfo = fileParser.parseFile(about.contentStream, about.charset, about.fileFormat);
                 }
             } else {
 

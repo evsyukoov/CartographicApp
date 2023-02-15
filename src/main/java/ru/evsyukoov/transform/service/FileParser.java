@@ -1,11 +1,14 @@
 package ru.evsyukoov.transform.service;
 
 import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.enums.FileFormat;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public interface FileParser {
+
+    FileInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
 
     /**
      * @param text - Текст, отправленный пользователем
