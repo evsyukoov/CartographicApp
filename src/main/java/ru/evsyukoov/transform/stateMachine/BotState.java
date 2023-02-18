@@ -16,8 +16,11 @@ public interface BotState {
     /**
      * @return - Сообщение, отправляемое в самом начале взаимодействия бота с клиентом
      */
-    default String getStartMessage() {
-        return INPUT_PROMPT;
+    default SendMessage getStartMessage(long clientId) {
+        return SendMessage.builder()
+                .chatId(String.valueOf(clientId))
+                .text(INPUT_PROMPT)
+                .build();
     }
 
     /**
@@ -40,10 +43,7 @@ public interface BotState {
 
     default List<BotApiMethod<?>> handleStartMessage(Client client, Update update) {
         if (TelegramUtils.isStartMessage(update)) {
-            return List.of(SendMessage.builder()
-                    .chatId(String.valueOf(client.getId()))
-                    .text(getStartMessage())
-                    .build());
+            return List.of(getStartMessage(client.getId()));
         }
         return null;
     }

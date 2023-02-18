@@ -1,6 +1,9 @@
 package ru.evsyukoov.transform.utils;
 
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+
+import java.util.List;
 
 import static ru.evsyukoov.transform.constants.Messages.START;
 import static ru.evsyukoov.transform.constants.Messages.STOP;
@@ -33,6 +36,20 @@ public class TelegramUtils {
             return message.equals(START) || message.equals(STOP);
         }
         return false;
+    }
+
+    public static SendMessage initSendMessage(long id, List<String> messages) {
+        return SendMessage.builder()
+                .text(String.join("\n", messages))
+                .chatId(String.valueOf(id))
+                .build();
+    }
+
+    public static SendMessage initSendMessage(long id, String message) {
+        return SendMessage.builder()
+                .text( message)
+                .chatId(String.valueOf(id))
+                .build();
     }
 
 }

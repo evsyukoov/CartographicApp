@@ -1,11 +1,21 @@
 package ru.evsyukoov.transform.enums;
 
 public enum FileFormat {
-    CSV,
-    DXF,
-    TXT,
-    GPX,
-    KML,
-    KMZ;
+    CSV_RECTANGULAR("CSV(плоские)"),
+    CSV("CSV"),
+    DXF("DXF"),
+    TXT("TXT"),
+    GPX("GPX"),
+    KML("KML"),
+    KMZ("KMZ");
 
+    private final String description;
+
+    public String getDescription() {
+        return description;
+    }
+
+    FileFormat(String description) {
+        this.description = description;
+    }
 }

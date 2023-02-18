@@ -2,6 +2,7 @@ package ru.evsyukoov.transform.dto;
 
 import ru.evsyukoov.transform.convert.Point;
 import ru.evsyukoov.transform.enums.CoordinatesType;
+import ru.evsyukoov.transform.enums.FileFormat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.List;
  * Файл/текст после парсинга
  */
 public class FileInfo {
+
+    private FileFormat format;
 
     private CoordinatesType coordinatesType;
 
@@ -29,5 +32,13 @@ public class FileInfo {
 
     public void setCoordinatesType(CoordinatesType coordinatesType) {
         this.coordinatesType = coordinatesType;
+    }
+
+    public FileFormat getFormat() {
+        return format;
+    }
+
+    public void setFormat(FileFormat format) {
+        this.format = format;
     }
 }

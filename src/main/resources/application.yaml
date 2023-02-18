@@ -28,6 +28,8 @@ bot:
   token: ${CARTOGRAPHIC_BOT_TOKEN}
   name: ${CARTOGRAPHIC_BOT_NAME}
   max-result: 30
+  buttons-at-row: 2
+  optional-buttons-at-row: 3
 
 file-storage:
   upload: ./uploaded

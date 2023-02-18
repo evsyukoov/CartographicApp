@@ -92,7 +92,17 @@ public class FileParserImpl implements FileParser {
             default:
                 return null;
         }
+        fileInfo.setFormat(format);
         if (fileInfo.getPoints().isEmpty()) {
+            if (format == FileFormat.DXF) {
+                if (((AutocadFileInfo)fileInfo).getPolylines().isEmpty()
+                        || ((AutocadFileInfo)fileInfo).getPolylines().get(0).getPolyline().isEmpty()) {
+                    return null;
+                }
+                Point p = ((AutocadFileInfo)fileInfo).getPolylines().get(0).getPolyline().get(0);
+                fileInfo.setCoordinatesType(getPointCoordinatesType(p));
+                return fileInfo;
+            }
             return null;
         }
         fileInfo.setCoordinatesType(getPointCoordinatesType(fileInfo.getPoints().get(0)));

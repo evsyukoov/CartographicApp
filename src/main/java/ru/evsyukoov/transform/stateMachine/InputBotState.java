@@ -11,11 +11,14 @@ import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.exceptions.UploadFileException;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
 import ru.evsyukoov.transform.model.Client;
+import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.service.FileParser;
+import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
 import javax.annotation.PostConstruct;
@@ -32,7 +35,11 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @Slf4j
@@ -40,9 +47,27 @@ public class InputBotState implements BotState {
 
     private final FileParser fileParser;
 
+    private final Map<Long, FileInfo> clientFileCache;
+
+    private final KeyboardService keyboardService;
+
+    private final DataService dataService;
+
+    @Value("${bot.buttons-at-row:2}")
+    private Integer buttonsAtRow;
+
+    @Value("${bot.optional-buttons-at-row:3}")
+    private Integer optionalButtonsAtRow;
+
     @Autowired
-    public InputBotState(FileParser fileParser) {
+    public InputBotState(FileParser fileParser,
+                         Map<Long, FileInfo> clientFileCache,
+                         KeyboardService keyboardService,
+                         DataService dataService) {
         this.fileParser = fileParser;
+        this.clientFileCache = clientFileCache;
+        this.keyboardService = keyboardService;
+        this.dataService = dataService;
     }
 
     @PostConstruct
@@ -62,7 +87,7 @@ public class InputBotState implements BotState {
 
     @Override
     public String getStateMessage() {
-        return null;
+        return Messages.INPUT_PROMPT;
     }
 
     @Override
@@ -77,28 +102,51 @@ public class InputBotState implements BotState {
             if (!TelegramUtils.isCallbackMessage(update)) {
                 if (TelegramUtils.isTextMessage(update)) {
                     fileInfo = fileParser.parseText(update.getMessage().getText());
+                    clientFileCache.put(client.getId(), fileInfo);
+                    dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION, State.INPUT);
+                    return List.of(prepareOutputMessages(fileInfo, Messages.FILE_FORMAT_CHOICE, client.getId()));
                 } else if (TelegramUtils.isDocumentMessage(update)) {
                     FileAbout about  = downloadFile(update, client.getId());
                     fileInfo = fileParser.parseFile(about.contentStream, about.charset, about.fileFormat);
+                    clientFileCache.put(client.getId(), fileInfo);
+                    dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION, State.INPUT);
+                    return List.of(prepareOutputMessages(fileInfo, Messages.FILE_FORMAT_CHOICE, client.getId()));
                 }
             } else {
-
+                return Collections.singletonList(
+                        TelegramUtils.initSendMessage(client.getId(), getStateMessage()));
             }
-            return List.of(SendMessage.builder()
-                    .text(Messages.WRONG_FORMAT_MESSAGE)
-                    .build());
-        } catch (WrongFileFormatException e) {
-            return List.of(SendMessage.builder()
-                    .text(Messages.WRONG_FILE_EXTENSION)
-                    .build());
-        } catch (UploadFileException e) {
-            return List.of(SendMessage.builder()
-                    .text(Messages.ERROR_WHILE_UPLOADING_FILE)
-                    .build());
-        } catch (IOException e) {
-            return List.of(SendMessage.builder()
-                    .text("Проблема на сервере")
-                    .build());
+            return List.of(
+                    TelegramUtils.initSendMessage(client.getId(), Messages.WRONG_FORMAT_MESSAGE), getStartMessage(client.getId()));
+        } catch (WrongFileFormatException | UploadFileException e) {
+            return List.of(
+                    TelegramUtils.initSendMessage(client.getId(), List.of(e.getMessage(), getStateMessage())));
+        } catch (Exception e) {
+            return Collections.singletonList(
+                    TelegramUtils.initSendMessage(client.getId(), List.of(Messages.FATAL_ERROR, getStateMessage())));
+        }
+    }
+
+    private SendMessage prepareOutputMessages(FileInfo fileInfo, String textMessage, long clientId) {
+        List<String> outputFormats = prepareOutputFormats(fileInfo).stream()
+                .map(FileFormat::getDescription)
+                .collect(Collectors.toList());
+        List<String> optional = List.of(Messages.APPROVE, Messages.HELP, Messages.BACK);
+        return keyboardService.prepareKeyboard(outputFormats, optional, buttonsAtRow, optionalButtonsAtRow, clientId, textMessage);
+    }
+
+    private List<FileFormat> prepareOutputFormats(FileInfo fileInfo) {
+        if (fileInfo.getCoordinatesType() == CoordinatesType.WGS_84) {
+            List<FileFormat> outputFormats = Stream.of(FileFormat.CSV_RECTANGULAR, FileFormat.GPX, FileFormat.KML, FileFormat.DXF).collect(Collectors.toList());
+            if (fileInfo.getFormat() != FileFormat.CSV) {
+                outputFormats.add(FileFormat.CSV);
+            }
+            outputFormats.removeIf(f -> f == fileInfo.getFormat());
+            return outputFormats;
+        } else {
+            List<FileFormat> outputFormats = Stream.of(FileFormat.CSV, FileFormat.CSV_RECTANGULAR, FileFormat.KML, FileFormat.GPX).collect(Collectors.toList());
+            outputFormats.removeIf(f -> f == fileInfo.getFormat());
+            return outputFormats;
         }
     }
 
@@ -129,8 +177,9 @@ public class InputBotState implements BotState {
             }
             log.info("Successfully download file {}", localFileName);
         } catch (IOException e) {
-            log.error("Problem with downloading file from telegram servers: ", e);
-            throw new UploadFileException("Problem with downloading file from telegram servers", e);
+            String err = "Проблема с загрузкой файла с сервера телеграм";
+            log.error(err, e);
+            throw new UploadFileException(err, e);
         }
         return inputInfo;
     }
@@ -156,13 +205,17 @@ public class InputBotState implements BotState {
         String extension = null;
         try {
             int pos = path.indexOf('.');
-            if (pos == -1)
-                throw new WrongFileFormatException("Not found file extension");
+            if (pos == -1) {
+                String err = "Не найдено расширение у присланного файла";
+                log.error(err);
+                throw new WrongFileFormatException(err);
+            }
             extension = path.substring(pos + 1);
             return FileFormat.valueOf(extension.toUpperCase());
-        } catch (Exception e) {
-            throw new WrongFileFormatException(
-                    String.format("Extension %s not at extensions list", extension));
+        } catch (IllegalArgumentException e) {
+            String err = String.format("Расширение файла %s не поддерживается", extension);
+            log.error("Err: {}", err, e);
+            throw new WrongFileFormatException(err);
         }
     }
 

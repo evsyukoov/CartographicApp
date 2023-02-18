@@ -79,6 +79,13 @@ public class DataServiceImpl implements DataService {
     }
 
     @Override
+    public void updateClientState(Client client, State next, State previous) {
+        client.setState(next);
+        client.setPreviousState(previous);
+        clientRepository.save(client);
+    }
+
+    @Override
     public List<String> findCoordinateSystemsByPattern(String text) {
         List<String> projects = findSystemDescription(text);
         if (CollectionUtils.isEmpty(projects)) {
