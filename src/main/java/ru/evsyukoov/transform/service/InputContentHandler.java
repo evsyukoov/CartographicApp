@@ -2,11 +2,17 @@ package ru.evsyukoov.transform.service;
 
 import ru.evsyukoov.transform.dto.FileInfo;
 import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.model.Client;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-public interface FileParser {
+public interface InputContentHandler {
+
+    FileInfo getInfo(Client client) throws FileNotFoundException, IOException;
+
+    FileInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;
 
     FileInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
 

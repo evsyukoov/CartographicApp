@@ -28,17 +28,22 @@ import ru.evsyukoov.transform.dto.FileInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
-import ru.evsyukoov.transform.service.FileParser;
+import ru.evsyukoov.transform.model.Client;
+import ru.evsyukoov.transform.service.InputContentHandler;
 
 import javax.xml.parsers.DocumentBuilder;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -46,7 +51,7 @@ import java.util.List;
 
 @Service
 @Slf4j
-public class FileParserImpl implements FileParser {
+public class InputContentHandlerImpl implements InputContentHandler {
 
     @Value("${parser.text-delimetr}")
     private String delimetr;
@@ -61,10 +66,33 @@ public class FileParserImpl implements FileParser {
 
     private static final int CAD_BORDER_LEFT = -1000;
 
+    private final Map<Long, FileInfo> clientFileCache;
+
     @Autowired
-    public FileParserImpl(DocumentBuilder documentBuilder, Parser dxfParser, ApplicationContext context) {
+    public InputContentHandlerImpl(DocumentBuilder documentBuilder,
+                                   ApplicationContext context,
+                                   Map<Long, FileInfo> clientFileCache) {
         this.documentBuilder = documentBuilder;
         this.context = context;
+        this.clientFileCache = clientFileCache;
+    }
+
+    @Override
+    public FileInfo getInfo(Client client) throws IOException {
+        if (clientFileCache.isEmpty()) {
+            log.info("No file info at app cache for client {}", client);
+            String charset = (client.getFormat() == FileFormat.CSV || client.getFormat()  == FileFormat.TXT) ? "windows-1251" : "UTF-8";
+            FileInfo fileInfo = parseFile(new FileInputStream(client.getId() + "." + client.getFormat().name()),
+                    charset, client.getFormat());
+            return clientFileCache.put(client.getId(), fileInfo);
+        }
+        return clientFileCache.get(client.getId());
+    }
+
+    @Override
+    public FileInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException {
+        FileInfo fileInfo = parseFile(inputStream, charset, format);
+        return clientFileCache.put(clientId, fileInfo);
     }
 
     @Override

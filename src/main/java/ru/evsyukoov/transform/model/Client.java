@@ -1,5 +1,7 @@
 package ru.evsyukoov.transform.model;
 
+import ru.evsyukoov.transform.bot.enums.InputCoordinatesType;
+import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.stateMachine.State;
 
 import javax.persistence.Column;
@@ -29,6 +31,10 @@ public class Client {
     @Column(name = "previous_state")
     @Enumerated
     private State previousState;
+
+    @Column(name = "in_file_format")
+    @Enumerated
+    private FileFormat format;
 
     @Column(name = "count")
     private int count;
@@ -79,6 +85,14 @@ public class Client {
 
     public void setPreviousState(State previousState) {
         this.previousState = previousState;
+    }
+
+    public FileFormat getFormat() {
+        return format;
+    }
+
+    public void setFormat(FileFormat format) {
+        this.format = format;
     }
 
     @Override

@@ -2,6 +2,7 @@ package ru.evsyukoov.transform.utils;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import ru.evsyukoov.transform.constants.Messages;
 
 import java.util.List;
 
@@ -36,6 +37,10 @@ public class TelegramUtils {
             return message.equals(START) || message.equals(STOP);
         }
         return false;
+    }
+
+    public static boolean isHelpMessage(Update update) {
+        return update.getCallbackQuery().getData().equals(Messages.HELP);
     }
 
     public static SendMessage initSendMessage(long id, List<String> messages) {

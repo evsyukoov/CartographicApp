@@ -2,7 +2,7 @@ package ru.evsyukoov.transform.enums;
 
 public enum FileFormat {
     CSV_RECTANGULAR("CSV(плоские)"),
-    CSV("CSV"),
+    CSV("CSV(WGS-84)"),
     DXF("DXF"),
     TXT("TXT"),
     GPX("GPX"),

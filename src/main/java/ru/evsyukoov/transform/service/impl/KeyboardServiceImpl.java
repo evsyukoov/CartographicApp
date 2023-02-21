@@ -1,6 +1,7 @@
 package ru.evsyukoov.transform.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -22,8 +23,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class KeyboardServiceImpl implements KeyboardService {
 
+    @Value("${bot.buttons-at-row:2}")
+    private Integer buttonsAtRow;
+
+    @Value("${bot.optional-buttons-at-row:3}")
+    private Integer optionalButtonsAtRow;
+
     @Override
-    public SendMessage prepareKeyboard(List<String> payloadButtons, int buttonsAtRow, long clientId, String text) {
+    public SendMessage prepareKeyboard(List<String> payloadButtons, long clientId, String text) {
         SendMessage sm = new SendMessage();
         payloadButtons = payloadButtons.stream()
                 .map(Messages.EMPTY_SYMBOL::concat)
@@ -35,15 +42,23 @@ public class KeyboardServiceImpl implements KeyboardService {
     }
 
     @Override
+    public SendMessage prepareOptionalKeyboard(List<String> optionalButtons, long clientId, String text) {
+        SendMessage sm = new SendMessage();
+        sm.setReplyMarkup(prepareKeyboard(optionalButtons, buttonsAtRow));
+        sm.setChatId(String.valueOf(clientId));
+        sm.setText(text);
+        return sm;
+    }
+
+    @Override
     public SendMessage prepareKeyboard(List<String> payloadButtons, List<String> optionalButtons,
-                                       int payloadButtonsAtRow, int optionalButtonsAtRow,
                                        long clientId, String text) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         SendMessage sendMessage = new SendMessage();
         payloadButtons = payloadButtons.stream()
                 .map(Messages.EMPTY_SYMBOL::concat)
                 .collect(Collectors.toList());
-        List<List<InlineKeyboardButton>> buttons = prepareButtons(payloadButtons, payloadButtonsAtRow);
+        List<List<InlineKeyboardButton>> buttons = prepareButtons(payloadButtons, buttonsAtRow);
         buttons.addAll(prepareButtons(optionalButtons, optionalButtonsAtRow));
         inlineKeyboardMarkup.setKeyboard(buttons);
         sendMessage.setReplyMarkup(inlineKeyboardMarkup);
@@ -69,6 +84,17 @@ public class KeyboardServiceImpl implements KeyboardService {
                 .messageId(update.getCallbackQuery().getMessage().getMessageId())
                 .replyMarkup(markup)
                 .build();
+    }
+
+    @Override
+    public List<String> getPressedItems(Update update, long id) {
+        InlineKeyboardMarkup markup = update.getCallbackQuery().getMessage().getReplyMarkup();
+        return markup.getKeyboard().stream()
+                .flatMap(Collection::stream)
+                .map(InlineKeyboardButton::getCallbackData)
+                .filter(str -> str.startsWith(Messages.CONFIRM_SYMBOL))
+                .map(str -> str.substring(Messages.CONFIRM_SYMBOL.length()))
+                .collect(Collectors.toList());
     }
 
     private InlineKeyboardButton findPressedButton(InlineKeyboardMarkup markup, String text) {

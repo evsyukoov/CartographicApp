@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -13,11 +14,12 @@ import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.dto.FileInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.exceptions.UploadFileException;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
 import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.service.DataService;
-import ru.evsyukoov.transform.service.FileParser;
+import ru.evsyukoov.transform.service.InputContentHandler;
 import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
@@ -45,7 +47,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class InputBotState implements BotState {
 
-    private final FileParser fileParser;
+    private final InputContentHandler fileParser;
 
     private final Map<Long, FileInfo> clientFileCache;
 
@@ -53,14 +55,10 @@ public class InputBotState implements BotState {
 
     private final DataService dataService;
 
-    @Value("${bot.buttons-at-row:2}")
-    private Integer buttonsAtRow;
-
-    @Value("${bot.optional-buttons-at-row:3}")
-    private Integer optionalButtonsAtRow;
+    private BotStateFactory botStateFactory;
 
     @Autowired
-    public InputBotState(FileParser fileParser,
+    public InputBotState(InputContentHandler fileParser,
                          Map<Long, FileInfo> clientFileCache,
                          KeyboardService keyboardService,
                          DataService dataService) {
@@ -68,6 +66,11 @@ public class InputBotState implements BotState {
         this.clientFileCache = clientFileCache;
         this.keyboardService = keyboardService;
         this.dataService = dataService;
+    }
+
+    @Autowired
+    public void setBotStateFactory(@Lazy BotStateFactory botStateFactory) {
+        this.botStateFactory = botStateFactory;
     }
 
     @PostConstruct
@@ -84,6 +87,13 @@ public class InputBotState implements BotState {
 
     @Value("${file-storage.upload}")
     private String fileStoragePath;
+
+    @Override
+    public SendMessage getStartMessage(long clientId) {
+        return keyboardService.prepareOptionalKeyboard(
+                Collections.singletonList(Messages.HELP), clientId, getStateMessage()
+        );
+    }
 
     @Override
     public String getStateMessage() {
@@ -103,16 +113,22 @@ public class InputBotState implements BotState {
                 if (TelegramUtils.isTextMessage(update)) {
                     fileInfo = fileParser.parseText(update.getMessage().getText());
                     clientFileCache.put(client.getId(), fileInfo);
-                    dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION, State.INPUT);
-                    return List.of(prepareOutputMessages(fileInfo, Messages.FILE_FORMAT_CHOICE, client.getId()));
+                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT);
+                    return Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
                 } else if (TelegramUtils.isDocumentMessage(update)) {
                     FileAbout about  = downloadFile(update, client.getId());
                     fileInfo = fileParser.parseFile(about.contentStream, about.charset, about.fileFormat);
                     clientFileCache.put(client.getId(), fileInfo);
-                    dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION, State.INPUT);
-                    return List.of(prepareOutputMessages(fileInfo, Messages.FILE_FORMAT_CHOICE, client.getId()));
+                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT);
+                    return Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
                 }
             } else {
+                if (TelegramUtils.isHelpMessage(update)) {
+                    dataService.updateClientState(client, State.HELP, State.INPUT);
+                    BotState next = botStateFactory.initState(client);
+                    return List.of(
+                            keyboardService.prepareOptionalKeyboard(List.of(Messages.BACK), client.getId(), next.getStateMessage()));
+                }
                 return Collections.singletonList(
                         TelegramUtils.initSendMessage(client.getId(), getStateMessage()));
             }
@@ -127,27 +143,15 @@ public class InputBotState implements BotState {
         }
     }
 
-    private SendMessage prepareOutputMessages(FileInfo fileInfo, String textMessage, long clientId) {
-        List<String> outputFormats = prepareOutputFormats(fileInfo).stream()
-                .map(FileFormat::getDescription)
-                .collect(Collectors.toList());
-        List<String> optional = List.of(Messages.APPROVE, Messages.HELP, Messages.BACK);
-        return keyboardService.prepareKeyboard(outputFormats, optional, buttonsAtRow, optionalButtonsAtRow, clientId, textMessage);
-    }
-
-    private List<FileFormat> prepareOutputFormats(FileInfo fileInfo) {
+    private SendMessage prepareOutputMessage(FileInfo fileInfo, long clientId) {
+        Stream<TransformationType> types;
         if (fileInfo.getCoordinatesType() == CoordinatesType.WGS_84) {
-            List<FileFormat> outputFormats = Stream.of(FileFormat.CSV_RECTANGULAR, FileFormat.GPX, FileFormat.KML, FileFormat.DXF).collect(Collectors.toList());
-            if (fileInfo.getFormat() != FileFormat.CSV) {
-                outputFormats.add(FileFormat.CSV);
-            }
-            outputFormats.removeIf(f -> f == fileInfo.getFormat());
-            return outputFormats;
+            types = Stream.of(TransformationType.WGS_TO_WGS, TransformationType.WGS_TO_MSK);
         } else {
-            List<FileFormat> outputFormats = Stream.of(FileFormat.CSV, FileFormat.CSV_RECTANGULAR, FileFormat.KML, FileFormat.GPX).collect(Collectors.toList());
-            outputFormats.removeIf(f -> f == fileInfo.getFormat());
-            return outputFormats;
+            types = Stream.of(TransformationType.MSK_TO_WGS, TransformationType.MSK_TO_MSK);
         }
+        return keyboardService.prepareKeyboard(types.map(TransformationType::getDescription).collect(Collectors.toList()),
+                List.of(Messages.BACK), clientId, Messages.TRANSFORMATION_TYPE_CHOICE);
     }
 
     private String getFileServerPath(Document document) throws IOException {

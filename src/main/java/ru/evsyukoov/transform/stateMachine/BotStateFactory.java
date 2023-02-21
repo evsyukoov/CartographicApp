@@ -23,4 +23,8 @@ public class BotStateFactory {
     public BotState initState(Client client) {
         return states.get(client.getState());
     }
+
+    public BotState initPrevState(Client client) {
+        return states.get(client.getPreviousState());
+    }
 }
