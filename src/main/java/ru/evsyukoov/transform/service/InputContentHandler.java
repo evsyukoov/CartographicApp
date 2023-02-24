@@ -14,6 +14,8 @@ public interface InputContentHandler {
 
     FileInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;
 
+    FileInfo putInfo(String text, long clientId) throws IOException;
+
     FileInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
 
     /**

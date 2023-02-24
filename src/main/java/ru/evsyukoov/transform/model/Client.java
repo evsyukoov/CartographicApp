@@ -2,6 +2,7 @@ package ru.evsyukoov.transform.model;
 
 import ru.evsyukoov.transform.bot.enums.InputCoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.stateMachine.State;
 
 import javax.persistence.Column;
@@ -28,16 +29,19 @@ public class Client {
     @Enumerated
     private State state;
 
-    @Column(name = "previous_state")
-    @Enumerated
-    private State previousState;
-
     @Column(name = "in_file_format")
     @Enumerated
     private FileFormat format;
 
+    @Column(name = "transformation_type")
+    @Enumerated
+    private TransformationType transformationType;
+
     @Column(name = "count")
     private int count;
+
+    @Column(name = "last_response")
+    private String response;
 
     public long getId() {
         return id;
@@ -79,20 +83,28 @@ public class Client {
         this.count = count;
     }
 
-    public State getPreviousState() {
-        return previousState;
-    }
-
-    public void setPreviousState(State previousState) {
-        this.previousState = previousState;
-    }
-
     public FileFormat getFormat() {
         return format;
     }
 
     public void setFormat(FileFormat format) {
         this.format = format;
+    }
+
+    public TransformationType getTransformationType() {
+        return transformationType;
+    }
+
+    public void setTransformationType(TransformationType transformationType) {
+        this.transformationType = transformationType;
+    }
+
+    public String getResponse() {
+        return response;
+    }
+
+    public void setResponse(String response) {
+        this.response = response;
     }
 
     @Override
@@ -102,7 +114,6 @@ public class Client {
                 ", userName='" + userName + '\'' +
                 ", nickName='" + nickName + '\'' +
                 ", state=" + state +
-                ", previousState=" + previousState +
                 ", count=" + count +
                 '}';
     }

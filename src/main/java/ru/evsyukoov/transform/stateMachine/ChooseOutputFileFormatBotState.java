@@ -56,8 +56,8 @@ public class ChooseOutputFileFormatBotState implements BotState {
         } else {
             String text = update.getCallbackQuery().getData();
             if (text.equals(Messages.BACK)) {
-                List<BotApiMethod<?>> res = Collections.singletonList(
-                        stateFactory.initPrevState(client).getStartMessage(client.getId()));
+                List<BotApiMethod<?>> res = Collections.singletonList(TelegramUtils.initSendMessage(client.getId(),
+                        stateFactory.initPrevState(client).getStateMessage()));
                 dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT);
                 return res;
             } else if (text.equals(Messages.APPROVE)) {

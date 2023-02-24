@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.model.CoordinateSystem;
 import ru.evsyukoov.transform.repository.ClientRepository;
@@ -82,6 +84,21 @@ public class DataServiceImpl implements DataService {
     public void updateClientState(Client client, State next, State previous) {
         client.setState(next);
         client.setPreviousState(previous);
+        clientRepository.save(client);
+    }
+
+    public void updateClientStateAndChosenFormat(Client client, State next, State previous, FileFormat chosenFormat) {
+        client.setState(next);
+        client.setPreviousState(previous);
+        client.setFormat(chosenFormat);
+        clientRepository.save(client);
+    }
+
+    @Override
+    public void updateClientStateAndChosenTransformation(Client client, State next, State previous, TransformationType type) {
+        client.setState(next);
+        client.setPreviousState(previous);
+        client.setTransformationType(type);
         clientRepository.save(client);
     }
 

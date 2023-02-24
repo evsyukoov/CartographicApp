@@ -111,15 +111,13 @@ public class InputBotState implements BotState {
             FileInfo fileInfo;
             if (!TelegramUtils.isCallbackMessage(update)) {
                 if (TelegramUtils.isTextMessage(update)) {
-                    fileInfo = fileParser.parseText(update.getMessage().getText());
-                    clientFileCache.put(client.getId(), fileInfo);
-                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT);
+                    fileInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
+                    dataService.updateClientStateAndChosenFormat(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT, fileInfo.getFormat());
                     return Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
                 } else if (TelegramUtils.isDocumentMessage(update)) {
                     FileAbout about  = downloadFile(update, client.getId());
-                    fileInfo = fileParser.parseFile(about.contentStream, about.charset, about.fileFormat);
-                    clientFileCache.put(client.getId(), fileInfo);
-                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT);
+                    fileInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
+                    dataService.updateClientStateAndChosenFormat(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT, fileInfo.getFormat());
                     return Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
                 }
             } else {

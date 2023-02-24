@@ -96,6 +96,12 @@ public class InputContentHandlerImpl implements InputContentHandler {
     }
 
     @Override
+    public FileInfo putInfo(String text, long clientId) throws IOException {
+        FileInfo fileInfo = parseText(text);
+        return clientFileCache.put(clientId, fileInfo);
+    }
+
+    @Override
     public FileInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException {
         FileInfo fileInfo;
         switch (format) {
@@ -148,6 +154,11 @@ public class InputContentHandlerImpl implements InputContentHandler {
             coordinatesType = getPointCoordinatesType(point);
             fileInfo.getPoints().add(point);
         }
+        if (fileInfo.getPoints().isEmpty()) {
+            return null;
+        }
+        fileInfo.setFormat(FileFormat.TXT);
+        fileInfo.setCoordinatesType(getPointCoordinatesType(fileInfo.getPoints().get(0)));
         return fileInfo;
     }
 
