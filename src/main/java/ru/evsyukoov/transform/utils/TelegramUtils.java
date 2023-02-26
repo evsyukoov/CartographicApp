@@ -1,15 +1,28 @@
 package ru.evsyukoov.transform.utils;
 
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
+import ru.evsyukoov.transform.dto.Point;
+import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.service.OutputContentGenerator;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import static ru.evsyukoov.transform.constants.Messages.START;
 import static ru.evsyukoov.transform.constants.Messages.STOP;
 
 public class TelegramUtils {
+
+    private final static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM_dd_HH_mm_ss");
 
     public static boolean isInlineMessage(Update update) {
         return update != null && update.getInlineQuery() != null;
@@ -25,6 +38,11 @@ public class TelegramUtils {
 
     public static boolean isCallbackMessage(Update update) {
         return update.getCallbackQuery() != null;
+    }
+
+    public static boolean isBackMessage(Update update) {
+        return update.getCallbackQuery() != null
+               && update.getCallbackQuery().getData().equals(Messages.BACK);
     }
 
     public static boolean isTextDocumentOrCallbackMessage(Update update) {

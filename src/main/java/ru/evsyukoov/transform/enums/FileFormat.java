@@ -7,7 +7,8 @@ public enum FileFormat {
     TXT("TXT"),
     GPX("GPX"),
     KML("KML"),
-    KMZ("KMZ");
+    KMZ("KMZ"),
+    CONSOLE_IN("TEXT");
 
     private final String description;
 

@@ -22,21 +22,21 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import ru.evsyukoov.transform.convert.Point;
+import ru.evsyukoov.transform.dto.Pline;
+import ru.evsyukoov.transform.dto.Point;
 import ru.evsyukoov.transform.dto.AutocadFileInfo;
 import ru.evsyukoov.transform.dto.FileInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
 import ru.evsyukoov.transform.model.Client;
+import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.service.InputContentHandler;
 
 import javax.xml.parsers.DocumentBuilder;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -62,6 +62,8 @@ public class InputContentHandlerImpl implements InputContentHandler {
 
     private final ApplicationContext context;
 
+    private final DataService dataService;
+
     private static final int CAD_BORDER_RIGHT = 1000;
 
     private static final int CAD_BORDER_LEFT = -1000;
@@ -71,19 +73,21 @@ public class InputContentHandlerImpl implements InputContentHandler {
     @Autowired
     public InputContentHandlerImpl(DocumentBuilder documentBuilder,
                                    ApplicationContext context,
-                                   Map<Long, FileInfo> clientFileCache) {
+                                   DataService dataService, Map<Long, FileInfo> clientFileCache) {
         this.documentBuilder = documentBuilder;
         this.context = context;
+        this.dataService = dataService;
         this.clientFileCache = clientFileCache;
     }
 
     @Override
     public FileInfo getInfo(Client client) throws IOException {
         if (clientFileCache.isEmpty()) {
+            FileFormat format = dataService.getClientFileFormatChoice(client);
             log.info("No file info at app cache for client {}", client);
-            String charset = (client.getFormat() == FileFormat.CSV || client.getFormat()  == FileFormat.TXT) ? "windows-1251" : "UTF-8";
-            FileInfo fileInfo = parseFile(new FileInputStream(client.getId() + "." + client.getFormat().name()),
-                    charset, client.getFormat());
+            String charset = (format == FileFormat.CSV || format  == FileFormat.TXT) ? "windows-1251" : "UTF-8";
+            FileInfo fileInfo = parseFile(new FileInputStream(client.getId() + "." + format.name()),
+                    charset, format);
             return clientFileCache.put(client.getId(), fileInfo);
         }
         return clientFileCache.get(client.getId());
@@ -98,7 +102,8 @@ public class InputContentHandlerImpl implements InputContentHandler {
     @Override
     public FileInfo putInfo(String text, long clientId) throws IOException {
         FileInfo fileInfo = parseText(text);
-        return clientFileCache.put(clientId, fileInfo);
+        clientFileCache.put(clientId, fileInfo);
+        return fileInfo;
     }
 
     @Override
@@ -157,7 +162,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
         if (fileInfo.getPoints().isEmpty()) {
             return null;
         }
-        fileInfo.setFormat(FileFormat.TXT);
+        fileInfo.setFormat(FileFormat.CONSOLE_IN);
         fileInfo.setCoordinatesType(getPointCoordinatesType(fileInfo.getPoints().get(0)));
         return fileInfo;
     }
@@ -303,8 +308,8 @@ public class InputContentHandlerImpl implements InputContentHandler {
         return points;
     }
 
-    private List<AutocadFileInfo.Polyline> parseDxfPolylines(DraftDocument doc) {
-        List<AutocadFileInfo.Polyline> polylines = new ArrayList<>();
+    private List<Pline> parseDxfPolylines(DraftDocument doc) {
+        List<Pline> polylines = new ArrayList<>();
         List<Polyline> polylinesFromDxf1 = doc.getLayers().stream()
                 .map(layer -> layer.getEntitiesByType(Type.TYPE_POLYLINE))
                 .flatMap(Collection::stream)
@@ -312,13 +317,13 @@ public class InputContentHandlerImpl implements InputContentHandler {
 
         for (int i = 0; i < polylinesFromDxf1.size(); i++) {
             List<Vertex> vertexes = polylinesFromDxf1.get(i).getVertices();
-            AutocadFileInfo.Polyline polyline = new AutocadFileInfo.Polyline();
+            Pline line = new Pline();
             for (int j = 0; j < vertexes.size(); j++) {
                 Point p = point3DtoPoint(vertexes.get(j).getPoint());
                 p.setName(i + "_" + j);
-                polyline.addPoint(p);
+                line.addPoint(p);
             }
-            polylines.add(polyline);
+            polylines.add(line);
         }
 
         List<LWPolyline> polylinesFromDxf2 = doc.getLayers().stream()
@@ -328,13 +333,13 @@ public class InputContentHandlerImpl implements InputContentHandler {
 
         for (int i = 0; i < polylinesFromDxf2.size(); i++) {
             List<LW2DVertex> vertexes = polylinesFromDxf2.get(i).getVertices();
-            AutocadFileInfo.Polyline polyline = new AutocadFileInfo.Polyline();
+            Pline line = new Pline();
             for (int j = 0; j < vertexes.size(); j++) {
                 Point p = point3DtoPoint(vertexes.get(j).getPoint());
                 p.setName(i + "_" + j);
-                polyline.addPoint(p);
+                line.addPoint(p);
             }
-            polylines.add(polyline);
+            polylines.add(line);
         }
         return polylines;
     }

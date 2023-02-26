@@ -1,4 +1,4 @@
-package ru.evsyukoov.transform.convert;
+package ru.evsyukoov.transform.dto;
 
 public class Point {
     public String  name;

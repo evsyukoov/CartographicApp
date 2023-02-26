@@ -19,6 +19,8 @@ public interface KeyboardService {
      */
     SendMessage prepareKeyboard(List<String> payloadButtons, long clientId, String text);
 
+    SendMessage preparePromptInlineKeyboard(List<String> optionalButtons, long clientId, String text);
+
     SendMessage prepareOptionalKeyboard(List<String> optionalButtons, long clientId, String text);
 
     /**

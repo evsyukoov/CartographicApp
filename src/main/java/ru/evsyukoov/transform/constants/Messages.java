@@ -2,6 +2,8 @@ package ru.evsyukoov.transform.constants;
 
 public final class Messages {
 
+    public static final String DELIMETR = ",";
+
     public final static String INLINE_QUERY_PROMPT = "Начните вводить систему координат";
 
     public final static String START = "/start";
@@ -26,9 +28,17 @@ public final class Messages {
 
     public static final String TRANSFORMATION_TYPE_CHOICE = "Выберите тип трансформации";
 
+    public static final String COORDINATE_SYSTEM_TARGET_CHOICE = "Выберите систему координат результирующего файла";
+
+    public static final String COORDINATE_SYSTEM_SRC_CHOICE = "Выберите систему координат исходного файла";
+
     public static final String BACK = " ⬆️️ Назад";
 
     public static final String FILE_FORMAT_CHOICE = "Выберите формат выходного файла";
+
+    public static final String NO_SUCH_COORDINATE_SYSTEM = "Вы выбрали систему координат не из списка. Повторите выбор";
+
+    public static final String INLINE_BUTTON_NAME = "Ввод";
 
     public static final String HELP_PROMPT = "Принимаемые типы файлов: kml, kmz, csv, txt, dxf, текст\n" +
             "Формат  текста: Point; North; East; (Elevation)\n" +

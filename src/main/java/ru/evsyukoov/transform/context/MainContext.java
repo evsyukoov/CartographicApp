@@ -3,6 +3,8 @@ package ru.evsyukoov.transform.context;
 import com.ibm.icu.text.Transliterator;
 import org.kabeja.dxf.parser.DXFParserBuilder;
 import org.kabeja.parser.Parser;
+import org.osgeo.proj4j.CRSFactory;
+import org.osgeo.proj4j.CoordinateTransformFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,6 +60,16 @@ public class MainContext {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     Parser dxfParser() {
         return DXFParserBuilder.createDefaultParser();
+    }
+
+    @Bean
+    CRSFactory crsFactory() {
+        return new CRSFactory();
+    }
+
+    @Bean
+    CoordinateTransformFactory coordinateTransformFactory() {
+        return new CoordinateTransformFactory();
     }
 
 }

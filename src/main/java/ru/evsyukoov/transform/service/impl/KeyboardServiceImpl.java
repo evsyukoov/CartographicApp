@@ -42,6 +42,25 @@ public class KeyboardServiceImpl implements KeyboardService {
     }
 
     @Override
+    public SendMessage preparePromptInlineKeyboard(List<String> optionalButtons, long clientId, String text) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        InlineKeyboardButton inlinePrompt = new InlineKeyboardButton();
+        inlinePrompt.setSwitchInlineQueryCurrentChat("");
+        inlinePrompt.setText(Messages.INLINE_BUTTON_NAME);
+
+        InlineKeyboardButton back = new InlineKeyboardButton();
+        back.setText(Messages.BACK);
+        back.setCallbackData(Messages.BACK);
+
+        markup.setKeyboard(List.of(List.of(inlinePrompt, back)));
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setReplyMarkup(markup);
+        sendMessage.setText(text);
+        sendMessage.setChatId(String.valueOf(clientId));
+        return sendMessage;
+    }
+
+    @Override
     public SendMessage prepareOptionalKeyboard(List<String> optionalButtons, long clientId, String text) {
         SendMessage sm = new SendMessage();
         sm.setReplyMarkup(prepareKeyboard(optionalButtons, buttonsAtRow));

@@ -1,11 +1,20 @@
 package ru.evsyukoov.transform.handlers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.SerializationUtils;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.inputmessagecontent.InputTextMessageContent;
@@ -13,12 +22,19 @@ import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQuery
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultArticle;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.model.Client;
+import ru.evsyukoov.transform.model.StateHistory;
 import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.stateMachine.BotState;
 import ru.evsyukoov.transform.stateMachine.BotStateFactory;
 import ru.evsyukoov.transform.stateMachine.State;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.io.StringReader;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,14 +47,18 @@ public class MessageHandler {
 
     private final BotStateFactory stateFactory;
 
+    private final ObjectMapper objectMapper;
+
     @Autowired
     public MessageHandler(DataService dataService,
-                          BotStateFactory stateFactory) {
+                          BotStateFactory stateFactory,
+                          ObjectMapper objectMapper) {
         this.stateFactory = stateFactory;
         this.dataService = dataService;
+        this.objectMapper = objectMapper;
     }
 
-    public List<BotApiMethod<?>> prepareMessage(Update update) {
+    public List<PartialBotApiMethod<?>> prepareMessage(Update update) throws IOException {
         long clientId;
         if (TelegramUtils.isCallbackMessage(update)) {
             clientId = update.getCallbackQuery().getMessage().getChatId();
@@ -49,15 +69,44 @@ public class MessageHandler {
         if (client == null) {
             client = dataService.createNewClient(clientId, getName(update), getNickName(update));
         }
-        if (client.getState() == null) {
-            client.setState(State.INPUT);
-        }
         BotState currentState = stateFactory.initState(client);
-        List<BotApiMethod<?>> start = currentState.handleStartMessage(client, update);
-        if (start != null) {
-            dataService.moveClientToStart(client, false);
+        List<PartialBotApiMethod<?>> commonResponse = handleStartMessage(client, update);
+        if (commonResponse != null) {
+            dataService.moveClientToStart(client, false,
+                    objectMapper.writeValueAsString(commonResponse));
+            return commonResponse;
         }
-        return start == null ? currentState.handleMessage(client, update) : start;
+        commonResponse = handleBackMessage(client, update);
+        return commonResponse == null ? currentState.handleMessage(client, update) : commonResponse;
+    }
+
+    private List<PartialBotApiMethod<?>> handleBackMessage(Client client, Update update) throws IOException {
+        if (TelegramUtils.isBackMessage(update)) {
+            List<StateHistory> history = client.getStateHistory();
+            if (!CollectionUtils.isEmpty(history)) {
+                StateHistory lastState = dataService.removeLastStateAndGet(client);
+                List<Serializable> lastResp = objectMapper.readValue(lastState.getResponse(),
+                        new TypeReference<List<Serializable>>() {});
+                List<PartialBotApiMethod<?>> response = new ArrayList<>();
+                for (Serializable respElem : lastResp) {
+                    String messageType = JsonPath.read(respElem, "$.method");
+                    if (messageType.equalsIgnoreCase("SendMessage")) {
+                        SendMessage sendMessage = objectMapper.convertValue(respElem, SendMessage.class);
+                        response.add(sendMessage);
+                    }
+                }
+                return response;
+            }
+        }
+        return null;
+    }
+
+    private List<PartialBotApiMethod<?>> handleStartMessage(Client client, Update update) throws JsonProcessingException {
+        if (TelegramUtils.isStartMessage(update)) {
+            return Collections.singletonList(
+                    TelegramUtils.initSendMessage(client.getId(), Messages.INPUT_PROMPT));
+        }
+        return null;
     }
 
     private String getName(Update update) {

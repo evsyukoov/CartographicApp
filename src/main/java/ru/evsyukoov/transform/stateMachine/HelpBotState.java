@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.model.Client;
@@ -47,15 +48,15 @@ public class HelpBotState implements BotState {
     }
 
     @Override
-    public List<BotApiMethod<?>> handleMessage(Client client, Update update) {
-        if (TelegramUtils.isCallbackMessage(update)) {
-            if (update.getCallbackQuery().getData().equals(Messages.BACK))  {
-              BotState prev = factory.initPrevState(client);
-              dataService.updateClientState(client, State.INPUT, null);
-              return List.of(
-                      prev.getStartMessage(client.getId()));
-            }
-        }
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
+//        if (TelegramUtils.isCallbackMessage(update)) {
+//            if (update.getCallbackQuery().getData().equals(Messages.BACK))  {
+//              BotState prev = factory.initPrevState(client);
+//              dataService.updateClientState(client, State.INPUT, null);
+//              return List.of(
+//                      prev.getStartMessage(client.getId()));
+//            }
+//        }
         return null;
     }
 }

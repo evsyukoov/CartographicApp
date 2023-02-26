@@ -2,8 +2,11 @@ package ru.evsyukoov.transform.stateMachine;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import ru.evsyukoov.transform.model.Client;
+import ru.evsyukoov.transform.model.StateHistory;
 
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +24,11 @@ public class BotStateFactory {
     }
 
     public BotState initState(Client client) {
-        return states.get(client.getState());
-    }
-
-    public BotState initPrevState(Client client) {
-        return states.get(client.getPreviousState());
+        List<StateHistory> history = client.getStateHistory();
+        if (CollectionUtils.isEmpty(history)) {
+            return states.get(State.INPUT);
+        }
+        client.getStateHistory().sort(Comparator.comparing(StateHistory::getState));
+        return states.get(history.get(history.size() - 1).getState());
     }
 }

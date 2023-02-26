@@ -1,6 +1,5 @@
 package ru.evsyukoov.transform.dto;
 
-import ru.evsyukoov.transform.convert.Point;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 

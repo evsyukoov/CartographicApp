@@ -10,4 +10,6 @@ public interface CoordinateSystemRepository extends JpaRepository<CoordinateSyst
 
     List<CoordinateSystem> findCoordinateSystemByDescriptionLike(String description);
 
+    CoordinateSystem findFirstByDescription(String description);
+
 }

@@ -1,5 +1,7 @@
 package ru.evsyukoov.transform.stateMachine;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -55,17 +58,21 @@ public class InputBotState implements BotState {
 
     private final DataService dataService;
 
+    private final ObjectMapper objectMapper;
+
     private BotStateFactory botStateFactory;
 
     @Autowired
     public InputBotState(InputContentHandler fileParser,
                          Map<Long, FileInfo> clientFileCache,
                          KeyboardService keyboardService,
-                         DataService dataService) {
+                         DataService dataService,
+                         ObjectMapper objectMapper) {
         this.fileParser = fileParser;
         this.clientFileCache = clientFileCache;
         this.keyboardService = keyboardService;
         this.dataService = dataService;
+        this.objectMapper = objectMapper;
     }
 
     @Autowired
@@ -106,27 +113,31 @@ public class InputBotState implements BotState {
     }
 
     @Override
-    public List<BotApiMethod<?>> handleMessage(Client client, Update update) {
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
         try {
             FileInfo fileInfo;
             if (!TelegramUtils.isCallbackMessage(update)) {
                 if (TelegramUtils.isTextMessage(update)) {
                     fileInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
-                    dataService.updateClientStateAndChosenFormat(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT, fileInfo.getFormat());
-                    return Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
+                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
+                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
+                            objectMapper.writeValueAsString(response), fileInfo.getFormat().name());
+                    return response;
                 } else if (TelegramUtils.isDocumentMessage(update)) {
                     FileAbout about  = downloadFile(update, client.getId());
                     fileInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
-                    dataService.updateClientStateAndChosenFormat(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT, fileInfo.getFormat());
-                    return Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
+                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
+                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
+                            objectMapper.writeValueAsString(response), fileInfo.getFormat().name());
+                    return response;
                 }
             } else {
-                if (TelegramUtils.isHelpMessage(update)) {
-                    dataService.updateClientState(client, State.HELP, State.INPUT);
-                    BotState next = botStateFactory.initState(client);
-                    return List.of(
-                            keyboardService.prepareOptionalKeyboard(List.of(Messages.BACK), client.getId(), next.getStateMessage()));
-                }
+//                if (TelegramUtils.isHelpMessage(update)) {
+//                    dataService.updateClientState(client, State.HELP, State.INPUT);
+//                    BotState next = botStateFactory.initState(client);
+//                    return List.of(
+//                            keyboardService.prepareOptionalKeyboard(List.of(Messages.BACK), client.getId(), next.getStateMessage()));
+//                }
                 return Collections.singletonList(
                         TelegramUtils.initSendMessage(client.getId(), getStateMessage()));
             }
@@ -136,6 +147,7 @@ public class InputBotState implements BotState {
             return List.of(
                     TelegramUtils.initSendMessage(client.getId(), List.of(e.getMessage(), getStateMessage())));
         } catch (Exception e) {
+            log.error("FATAL ERROR: ", e);
             return Collections.singletonList(
                     TelegramUtils.initSendMessage(client.getId(), List.of(Messages.FATAL_ERROR, getStateMessage())));
         }

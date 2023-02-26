@@ -1,16 +1,17 @@
 package ru.evsyukoov.transform.stateMachine;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.dto.FileInfo;
-import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.model.Client;
@@ -36,15 +37,19 @@ public class ChooseTransformationTypeBotState implements BotState {
 
     private final InputContentHandler inputContentHandler;
 
+    private final ObjectMapper objectMapper;
+
     @Autowired
     public ChooseTransformationTypeBotState(@Lazy BotStateFactory botStateFactory,
                                             DataService dataService,
                                             KeyboardService keyboardService,
-                                            InputContentHandler inputContentHandler) {
+                                            InputContentHandler inputContentHandler,
+                                            ObjectMapper objectMapper) {
         this.botStateFactory = botStateFactory;
         this.dataService = dataService;
         this.keyboardService = keyboardService;
         this.inputContentHandler = inputContentHandler;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -58,67 +63,55 @@ public class ChooseTransformationTypeBotState implements BotState {
     }
 
     @Override
-    public List<BotApiMethod<?>> handleMessage(Client client, Update update) {
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
         log.info("{} state, client {}", getState().name(), client);
         try {
             if (!TelegramUtils.isCallbackMessage(update)) {
                 return Collections.emptyList();
             } else {
-                if (update.getCallbackQuery().getData().equals(Messages.BACK)) {
-                    List<BotApiMethod<?>> res = Collections.singletonList(
-                            botStateFactory.initPrevState(client).getStartMessage(client.getId()));
-                    dataService.updateClientState(client, State.INPUT, null);
-                    return res;
+                String payload = update.getCallbackQuery().getData().substring(Messages.CONFIRM_SYMBOL.length() + 1);
+                TransformationType choice = TransformationType.getTypeByDescription(payload);
+                if (choice == null) {
+                    return Collections.emptyList();
                 } else {
-                    String payload = update.getCallbackQuery().getData().substring(Messages.CONFIRM_SYMBOL.length() + 1);
-                    TransformationType choice = TransformationType.getTypeByDescription(payload);
-                    if (choice == null) {
-                        return Collections.emptyList();
-                    } else {
-                        EditMessageReplyMarkup markup = keyboardService.pressButtonsChoiceHandle(update, client.getId());
-                        dataService.updateClientStateAndChosenTransformation(client, State.CHOOSE_OUTPUT_FILE_OPTION, getState(), choice);
-                        BotState next = botStateFactory.initState(client);
-                        FileInfo fileInfo = inputContentHandler.getInfo(client);
-                        return List.of(markup, prepareOutputMessage(fileInfo, next.getStateMessage(), client.getId()));
-                    }
+                    EditMessageReplyMarkup markup = keyboardService.pressButtonsChoiceHandle(update, client.getId());
+                    FileInfo fileInfo = inputContentHandler.getInfo(client);
+                    List<PartialBotApiMethod<?>> resp = List.of(markup, prepareOutputMessage(fileInfo, Messages.FILE_FORMAT_CHOICE, client.getId(), choice));
+                    dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION,
+                            objectMapper.writeValueAsString(resp), choice.name());
+                    return resp;
                 }
             }
         } catch (Exception e) {
+            log.error("FATAL ERROR: ", e);
             return Collections.singletonList(
                     TelegramUtils.initSendMessage(client.getId(), List.of(Messages.FATAL_ERROR, getStateMessage())));
         }
     }
 
-    //@Override
-    public List<BotApiMethod<?>> response(Client client) {
-        if (client.getTransformationType() == null) {
-            return Collections.emptyList();
-        } else {
-
-        }
-        return null;
-    }
-
-    private SendMessage prepareOutputMessage(FileInfo fileInfo, String textMessage, long clientId) {
-        List<String> outputFormats = prepareOutputFormats(fileInfo).stream()
+    private SendMessage prepareOutputMessage(FileInfo fileInfo, String textMessage, long clientId, TransformationType type) {
+        List<String> outputFormats = prepareOutputFormats(fileInfo, type).stream()
                 .map(FileFormat::getDescription)
                 .collect(Collectors.toList());
         List<String> optional = List.of(Messages.APPROVE, Messages.BACK);
         return keyboardService.prepareKeyboard(outputFormats, optional, clientId, textMessage);
     }
 
-    private List<FileFormat> prepareOutputFormats(FileInfo fileInfo) {
-        if (fileInfo.getCoordinatesType() == CoordinatesType.WGS_84) {
-            List<FileFormat> outputFormats = Stream.of(FileFormat.TXT, FileFormat.GPX, FileFormat.KML, FileFormat.DXF).collect(Collectors.toList());
-            if (fileInfo.getFormat() != FileFormat.CSV) {
-                outputFormats.add(FileFormat.CSV);
-            }
-            outputFormats.removeIf(f -> f == fileInfo.getFormat());
-            return outputFormats;
-        } else {
-            List<FileFormat> outputFormats = Stream.of(FileFormat.CSV, FileFormat.KML, FileFormat.GPX).collect(Collectors.toList());
-            outputFormats.removeIf(f -> f == fileInfo.getFormat());
-            return outputFormats;
+    private List<FileFormat> prepareOutputFormats(FileInfo fileInfo, TransformationType type) {
+        List<FileFormat> outputFormats = null;
+        switch (type) {
+            case WGS_TO_WGS:
+                outputFormats = Stream.of(FileFormat.TXT, FileFormat.GPX, FileFormat.KML, FileFormat.CSV).collect(Collectors.toList());
+                outputFormats.removeIf(f -> f == fileInfo.getFormat());
+                break;
+            case WGS_TO_MSK:
+            case MSK_TO_MSK:
+                outputFormats = List.of(FileFormat.TXT, FileFormat.CSV, FileFormat.DXF);
+                break;
+            case MSK_TO_WGS:
+                outputFormats = List.of(FileFormat.TXT, FileFormat.CSV, FileFormat.GPX, FileFormat.KML);
+                break;
         }
+        return outputFormats;
     }
 }

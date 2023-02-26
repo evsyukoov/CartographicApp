@@ -1,6 +1,8 @@
 package ru.evsyukoov.transform.stateMachine;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.model.Client;
@@ -39,13 +41,6 @@ public interface BotState {
      * @param update - Сообщение клиента
      * @return - Контент, который будет отправлен клиенту
      */
-    List<BotApiMethod<?>> handleMessage(Client client, Update update);
-
-    default List<BotApiMethod<?>> handleStartMessage(Client client, Update update) {
-        if (TelegramUtils.isStartMessage(update)) {
-            return List.of(getStartMessage(client.getId()));
-        }
-        return null;
-    }
+    List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws JsonProcessingException;
 
 }

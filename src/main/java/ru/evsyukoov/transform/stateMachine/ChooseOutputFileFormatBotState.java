@@ -1,19 +1,30 @@
 package ru.evsyukoov.transform.stateMachine;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.springframework.util.CollectionUtils;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
+import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.service.DataService;
+import ru.evsyukoov.transform.service.DocumentGenerator;
+import ru.evsyukoov.transform.service.InputContentHandler;
 import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -23,13 +34,25 @@ public class ChooseOutputFileFormatBotState implements BotState {
 
     private final DataService dataService;
 
+    private final DocumentGenerator documentGenerator;
+
+    private final InputContentHandler inputContentHandler;
+
+    private final ObjectMapper objectMapper;
+
     private BotStateFactory stateFactory;
 
     @Autowired
     public ChooseOutputFileFormatBotState(KeyboardService keyboardService,
-                                          DataService dataService) {
+                                          DataService dataService,
+                                          DocumentGenerator documentGenerator,
+                                          InputContentHandler inputContentHandler,
+                                          ObjectMapper objectMapper) {
         this.keyboardService = keyboardService;
         this.dataService = dataService;
+        this.documentGenerator = documentGenerator;
+        this.inputContentHandler = inputContentHandler;
+        this.objectMapper = objectMapper;
     }
 
     @Autowired
@@ -48,24 +71,59 @@ public class ChooseOutputFileFormatBotState implements BotState {
     }
 
     @Override
-    public List<BotApiMethod<?>> handleMessage(Client client, Update update) {
-        log.info("{} state, client {}", getState().name(), client);
-        if (!TelegramUtils.isCallbackMessage(update)) {
-            return Collections.singletonList(
-                    TelegramUtils.initSendMessage(client.getId(), Messages.FILE_FORMAT_CHOICE));
-        } else {
-            String text = update.getCallbackQuery().getData();
-            if (text.equals(Messages.BACK)) {
-                List<BotApiMethod<?>> res = Collections.singletonList(TelegramUtils.initSendMessage(client.getId(),
-                        stateFactory.initPrevState(client).getStateMessage()));
-                dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE, State.INPUT);
-                return res;
-            } else if (text.equals(Messages.APPROVE)) {
-                List<String> pressedButtons = keyboardService.getPressedItems(update, client.getId());
-
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
+        try {
+            log.info("{} state, client {}", getState().name(), client);
+            if (!TelegramUtils.isCallbackMessage(update)) {
+                return Collections.singletonList(
+                        TelegramUtils.initSendMessage(client.getId(), Messages.FILE_FORMAT_CHOICE));
+            } else {
+                String text = update.getCallbackQuery().getData();
+                if (text.equals(Messages.APPROVE)) {
+                    List<FileFormat> outputFormats = keyboardService.getPressedItems(update, client.getId()).stream()
+                            .map(FileFormat::valueOf)
+                            .collect(Collectors.toList());
+                    return prepareResponse(client, outputFormats);
+                }
+                return Collections.singletonList(
+                        keyboardService.pressButtonsChoiceHandle(update, client.getId()));
             }
-            return Collections.singletonList(
-                    keyboardService.pressButtonsChoiceHandle(update, client.getId()));
+        } catch (Exception e) {
+            log.error("FATAL ERROR: ", e);
+            return Collections.emptyList();
         }
+    }
+
+    private List<PartialBotApiMethod<?>> prepareResponse(Client client, List<FileFormat> outputFormats) throws IOException {
+        TransformationType type = dataService.getClientTransformationTypeChoice(client);
+        if (CollectionUtils.isEmpty(outputFormats)) {
+            log.warn("Client {} doesn't pressed any button", client);
+            return Collections.emptyList();
+        }
+        // такой тип перевода не требует запроса системы координат, просто конвертируем файлы, отправляем, конец диалога
+        List<PartialBotApiMethod<?>> resp = new ArrayList<>();
+        if (type == TransformationType.WGS_TO_WGS) {
+            FileInfo fileInfo = inputContentHandler.getInfo(client);
+            resp.addAll(documentGenerator.createDocuments(outputFormats, client, fileInfo.getPoints()));
+            SendMessage startMsg = TelegramUtils.initSendMessage(client.getId(), Messages.INPUT_PROMPT);
+            resp.add(startMsg);
+            dataService.moveClientToStart(client, true,
+                    objectMapper.writeValueAsString(Collections.singletonList(startMsg)));
+        } else if (type == TransformationType.WGS_TO_MSK) {
+            resp = Collections.singletonList(
+                    keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK), client.getId(), Messages.COORDINATE_SYSTEM_TARGET_CHOICE));
+            String clientChoice = outputFormats.stream().map(FileFormat::name).collect(Collectors.joining(","));
+            dataService.updateClientState(client, State.CHOOSE_SYSTEM_COORDINATE_TGT,
+                    objectMapper.writeValueAsString(resp), clientChoice);
+            return resp;
+        } else if (type == TransformationType.MSK_TO_WGS || type == TransformationType.MSK_TO_MSK) {
+            resp = Collections.singletonList(
+                    keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK), client.getId(), Messages.COORDINATE_SYSTEM_SRC_CHOICE));
+            String clientChoice = outputFormats.stream().map(FileFormat::name).collect(Collectors.joining(","));
+            dataService.updateClientState(client, State.CHOOSE_SYSTEM_COORDINATE_SRC,
+                    objectMapper.writeValueAsString(resp), clientChoice);
+            return resp;
+        }
+        return resp;
     }
 }

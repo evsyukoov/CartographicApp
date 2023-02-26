@@ -8,6 +8,11 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
@@ -63,9 +68,17 @@ public class GeodeticBot extends TelegramLongPollingBot {
         });
     }
 
-    private void sendMessages(List<BotApiMethod<?>> messages) throws TelegramApiException {
-        for (BotApiMethod<?> method : messages) {
-            this.execute(method);
+    private void sendMessages(List<PartialBotApiMethod<?>> messages) throws TelegramApiException {
+        for (PartialBotApiMethod<?> method : messages) {
+            if (method instanceof SendMessage) {
+                this.execute((SendMessage) method);
+            } else if (method instanceof SendDocument) {
+                this.execute((SendDocument) method);
+            } else if (method instanceof EditMessageReplyMarkup) {
+                this.execute((EditMessageReplyMarkup) method);
+            } else if (method instanceof SendVideo) {
+                this.execute((SendVideo) method);
+            }
         }
     }
 
