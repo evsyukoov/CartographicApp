@@ -1,6 +1,7 @@
 package ru.evsyukoov.transform.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.kabeja.io.GenerationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
@@ -34,7 +35,7 @@ public class DocumentGeneratorImpl implements DocumentGenerator {
     }
 
     @Override
-    public List<SendDocument> createDocuments(List<FileFormat> outputFormats, Client client, List<Point> points) throws IOException {
+    public List<SendDocument> createDocuments(List<FileFormat> outputFormats, Client client, List<Point> points) throws IOException, GenerationException {
         List<SendDocument> documents = new ArrayList<>();
         for (FileFormat format : outputFormats) {
             ByteArrayOutputStream baos = contentGenerator.generateFile(points, format);
@@ -52,15 +53,11 @@ public class DocumentGeneratorImpl implements DocumentGenerator {
     }
 
     @Override
-    public List<SendDocument> createDocuments(List<FileFormat> outputFormats, Client client, List<Point> points, List<Pline> lines) throws IOException {
+    public List<SendDocument> createDocuments(List<FileFormat> outputFormats, Client client, List<Point> points, List<Pline> lines) throws IOException, GenerationException {
         List<SendDocument> documents = new ArrayList<>();
         for (FileFormat format : outputFormats) {
             ByteArrayOutputStream baos;
-            if (format != FileFormat.DXF) {
-                baos = contentGenerator.generateFile(points, format);
-            } else {
-                baos = contentGenerator.generateDxf(points, lines);
-            }
+            baos = contentGenerator.generateFile(points, lines, format);
             if (baos != null) {
                 InputFile inputFile = new InputFile(new ByteArrayInputStream(baos.toByteArray()),
                         generateOutputFileName(client.getId(), format));

@@ -2,6 +2,7 @@ package ru.evsyukoov.transform.stateMachine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.kabeja.io.GenerationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
@@ -94,7 +95,7 @@ public class ChooseOutputFileFormatBotState implements BotState {
         }
     }
 
-    private List<PartialBotApiMethod<?>> prepareResponse(Client client, List<FileFormat> outputFormats) throws IOException {
+    private List<PartialBotApiMethod<?>> prepareResponse(Client client, List<FileFormat> outputFormats) throws IOException, GenerationException {
         TransformationType type = dataService.getClientTransformationTypeChoice(client);
         if (CollectionUtils.isEmpty(outputFormats)) {
             log.warn("Client {} doesn't pressed any button", client);

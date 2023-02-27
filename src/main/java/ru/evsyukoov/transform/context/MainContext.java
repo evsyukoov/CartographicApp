@@ -1,7 +1,13 @@
 package ru.evsyukoov.transform.context;
 
 import com.ibm.icu.text.Transliterator;
+import org.kabeja.common.Block;
+import org.kabeja.dxf.generator.DXFGenerator;
+import org.kabeja.dxf.generator.DXFGeneratorFactory;
 import org.kabeja.dxf.parser.DXFParserBuilder;
+import org.kabeja.entities.AttribDefinition;
+import org.kabeja.entities.Circle;
+import org.kabeja.math.Point3D;
 import org.kabeja.parser.Parser;
 import org.osgeo.proj4j.CRSFactory;
 import org.osgeo.proj4j.CoordinateTransformFactory;
@@ -15,6 +21,8 @@ import ru.evsyukoov.transform.dto.FileInfo;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -70,6 +78,32 @@ public class MainContext {
     @Bean
     CoordinateTransformFactory coordinateTransformFactory() {
         return new CoordinateTransformFactory();
+    }
+
+    @Bean
+    DXFGenerator dxfGenerator() throws IOException {
+        try (InputStream inputStream = MainContext.class.getClassLoader().getResourceAsStream("kabeja/profiles.xml")) {
+            return (DXFGenerator) DXFGeneratorFactory.createStreamGenerator(inputStream);
+        }
+    }
+    @Bean
+    Block defaultAutocadBlock() {
+        Block block = new Block();
+        Circle circle = new Circle();
+        circle.setBlockEntity(true);
+        circle.setCenterPoint(new Point3D(0, 0, 0));
+        circle.setRadius(1);
+        block.addEntity(circle);
+
+        AttribDefinition attribDefinition = new AttribDefinition();
+        attribDefinition.setBlockEntity(true);
+        attribDefinition.setTag("NAME");
+        attribDefinition.setTextFieldLength(100);
+        attribDefinition.setBlockAttribute(false);
+
+        block.addEntity(new AttribDefinition());
+        block.setName("INGGEO_BLOCK");
+        return block;
     }
 
 }

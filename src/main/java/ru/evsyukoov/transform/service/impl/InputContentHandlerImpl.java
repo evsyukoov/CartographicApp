@@ -96,7 +96,8 @@ public class InputContentHandlerImpl implements InputContentHandler {
     @Override
     public FileInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException {
         FileInfo fileInfo = parseFile(inputStream, charset, format);
-        return clientFileCache.put(clientId, fileInfo);
+        clientFileCache.put(clientId, fileInfo);
+        return fileInfo;
     }
 
     @Override

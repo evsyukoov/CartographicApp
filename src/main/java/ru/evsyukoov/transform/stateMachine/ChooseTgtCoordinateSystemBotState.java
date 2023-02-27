@@ -3,6 +3,7 @@ package ru.evsyukoov.transform.stateMachine;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.kabeja.io.GenerationException;
 import org.osgeo.proj4j.Proj4jException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -92,7 +93,7 @@ public class ChooseTgtCoordinateSystemBotState implements BotState {
         }
     }
 
-    private List<PartialBotApiMethod<?>> prepareResponse(Client client, String tgtSystem) throws IOException {
+    private List<PartialBotApiMethod<?>> prepareResponse(Client client, String tgtSystem) throws IOException, GenerationException {
         TransformationType type = dataService.getClientTransformationTypeChoice(client);
         List<Point> points;
         FileInfo fileInfo = inputContentHandler.getInfo(client);
