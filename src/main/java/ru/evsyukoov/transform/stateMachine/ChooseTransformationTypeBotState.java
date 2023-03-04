@@ -3,15 +3,13 @@ package ru.evsyukoov.transform.stateMachine;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
-import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.model.Client;
@@ -29,8 +27,6 @@ import java.util.stream.Stream;
 @Slf4j
 public class ChooseTransformationTypeBotState implements BotState {
 
-    private final BotStateFactory botStateFactory;
-
     private final DataService dataService;
 
     private final KeyboardService keyboardService;
@@ -40,12 +36,10 @@ public class ChooseTransformationTypeBotState implements BotState {
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public ChooseTransformationTypeBotState(@Lazy BotStateFactory botStateFactory,
-                                            DataService dataService,
+    public ChooseTransformationTypeBotState(DataService dataService,
                                             KeyboardService keyboardService,
                                             InputContentHandler inputContentHandler,
                                             ObjectMapper objectMapper) {
-        this.botStateFactory = botStateFactory;
         this.dataService = dataService;
         this.keyboardService = keyboardService;
         this.inputContentHandler = inputContentHandler;
@@ -75,8 +69,8 @@ public class ChooseTransformationTypeBotState implements BotState {
                     return Collections.emptyList();
                 } else {
                     EditMessageReplyMarkup markup = keyboardService.pressButtonsChoiceHandle(update, client.getId());
-                    FileInfo fileInfo = inputContentHandler.getInfo(client);
-                    List<PartialBotApiMethod<?>> resp = List.of(markup, prepareOutputMessage(fileInfo, Messages.FILE_FORMAT_CHOICE, client.getId(), choice));
+                    InputInfo inputInfo = inputContentHandler.getInfo(client);
+                    List<PartialBotApiMethod<?>> resp = List.of(markup, prepareOutputMessage(inputInfo, Messages.FILE_FORMAT_CHOICE, client.getId(), choice));
                     dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION,
                             objectMapper.writeValueAsString(resp), choice.name());
                     return resp;
@@ -89,20 +83,20 @@ public class ChooseTransformationTypeBotState implements BotState {
         }
     }
 
-    private SendMessage prepareOutputMessage(FileInfo fileInfo, String textMessage, long clientId, TransformationType type) {
-        List<String> outputFormats = prepareOutputFormats(fileInfo, type).stream()
+    private SendMessage prepareOutputMessage(InputInfo inputInfo, String textMessage, long clientId, TransformationType type) {
+        List<String> outputFormats = prepareOutputFormats(inputInfo, type).stream()
                 .map(FileFormat::getDescription)
                 .collect(Collectors.toList());
         List<String> optional = List.of(Messages.APPROVE, Messages.BACK);
         return keyboardService.prepareKeyboard(outputFormats, optional, clientId, textMessage);
     }
 
-    private List<FileFormat> prepareOutputFormats(FileInfo fileInfo, TransformationType type) {
+    private List<FileFormat> prepareOutputFormats(InputInfo inputInfo, TransformationType type) {
         List<FileFormat> outputFormats = null;
         switch (type) {
             case WGS_TO_WGS:
                 outputFormats = Stream.of(FileFormat.TXT, FileFormat.GPX, FileFormat.KML, FileFormat.CSV).collect(Collectors.toList());
-                outputFormats.removeIf(f -> f == fileInfo.getFormat());
+                outputFormats.removeIf(f -> f == inputInfo.getFormat());
                 break;
             case WGS_TO_MSK:
             case MSK_TO_MSK:

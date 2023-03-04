@@ -21,7 +21,7 @@
 
             <type name="LWPOLYLINE">
                 <subtype ref-id="acdbentity" />
-                <subtype id="acdbpolyline" name="AcDbPolyline" groupCodes="90,70" />
+                <subtype id="acdbpolyline" name="AcDbPolyline" groupCodes="90,70,100" />
                 <subtype id="acdbvertex" name="AcDbVertex" groupCodes="10,20,40,41,42" />
             </type>
 

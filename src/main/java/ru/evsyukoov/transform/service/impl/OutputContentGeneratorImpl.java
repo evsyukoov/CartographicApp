@@ -1,65 +1,51 @@
 package ru.evsyukoov.transform.service.impl;
 
+import com.jsevy.jdxf.DXFCircle;
+import com.jsevy.jdxf.DXFDocument;
+import com.jsevy.jdxf.DXFGraphics;
+import com.jsevy.jdxf.DXFStyle;
+import com.jsevy.jdxf.DXFText;
+import com.jsevy.jdxf.RealPoint;
 import lombok.extern.slf4j.Slf4j;
-import org.kabeja.DraftDocument;
-import org.kabeja.common.Block;
-import org.kabeja.dxf.generator.DXFGenerator;
-import org.kabeja.entities.Attrib;
-import org.kabeja.entities.Insert;
-import org.kabeja.io.GenerationException;
-import org.kabeja.math.Point3D;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import ru.evsyukoov.transform.constants.Const;
 import ru.evsyukoov.transform.dto.Pline;
 import ru.evsyukoov.transform.dto.Point;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.service.OutputContentGenerator;
 
+import java.awt.geom.AffineTransform;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @Slf4j
 public class OutputContentGeneratorImpl implements OutputContentGenerator {
 
-    private final DXFGenerator dxfGenerator;
+    private final AffineTransform transformationRotate;
 
-    private final Block defaultAutocadBlock;
+    private final DXFStyle dxfStyle;
+
+    @Value("${text.delimetr}")
+    private String delimetr;
 
     @Autowired
-    public OutputContentGeneratorImpl(DXFGenerator dxfGenerator,
-                                      Block defaultAutocadBlock) {
-        this.dxfGenerator = dxfGenerator;
-        this.defaultAutocadBlock = defaultAutocadBlock;
+    public OutputContentGeneratorImpl(AffineTransform transformationRotate,
+                                      DXFStyle dxfStyle) {
+        this.transformationRotate = transformationRotate;
+        this.dxfStyle = dxfStyle;
     }
 
     @Override
-    public ByteArrayOutputStream generateFile(List<Point> points, FileFormat format) throws IOException, GenerationException {
+    public ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws IOException {
         if (CollectionUtils.isEmpty(points)) {
-            return null;
-        }
-        ByteArrayOutputStream baos = null;
-        if (format == FileFormat.KML) {
-            baos = this.generateKml(points);
-        } else if (format == FileFormat.GPX) {
-            baos = this.generateGpx(points);
-        } else if (format == FileFormat.TXT) {
-            baos = this.generateTxt(points);
-        } else if (format == FileFormat.CSV) {
-            baos = this.generateCsv(points);
-        } else if (format == FileFormat.DXF) {
-            baos = this.generateDxf(points);
-        }
-        return baos;
-    }
-
-    @Override
-    public ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws IOException, GenerationException {
-        if (CollectionUtils.isEmpty(points) && CollectionUtils.isEmpty(lines)) {
             return null;
         }
         ByteArrayOutputStream baos = null;
@@ -68,9 +54,9 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
         } else if (format == FileFormat.GPX) {
             baos = this.generateGpx(points, lines);
         } else if (format == FileFormat.TXT) {
-            baos = this.generateTxt(points);
+            baos = this.generateTxt(points, lines);
         } else if (format == FileFormat.CSV) {
-            baos = this.generateCsv(points);
+            baos = this.generateCsv(points, lines);
         } else if (format == FileFormat.DXF) {
             baos = this.generateDxf(points, lines);
         }
@@ -78,83 +64,71 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
     }
 
     @Override
-    public ByteArrayOutputStream generateCsv(List<Point> points) throws IOException {
+    public ByteArrayOutputStream generateCsv(List<Point> points, List<Pline> lines) throws IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             for (Point p : points) {
-                out.write(String.format("%s;%s;%s;%s\n", p.name, p.x, p.y, p.h).getBytes());
+                out.write(String.format("%s%s%s%s%s%s%s\n", p.name, delimetr, p.x, delimetr, p.y, delimetr, p.h).getBytes());
+            }
+            int i = 1;
+            for (Pline line : lines) {
+                int j = 1;
+                out.write(String.format("Polyline N %d\n", i).getBytes());
+                for (Point p : line.getPolyline()) {
+                    out.write(
+                            String.format("Vertex N %d%s%s%s%s%s%s\n", j, delimetr, p.x, delimetr, p.y, delimetr, p.h).getBytes());
+                    j++;
+                }
+                i++;
             }
             return out;
         }
     }
 
     @Override
-    public ByteArrayOutputStream generateTxt(List<Point> points) throws IOException {
-        return generateCsv(points);
+    public ByteArrayOutputStream generateTxt(List<Point> points, List<Pline> lines) throws IOException {
+        return generateCsv(points, lines);
     }
 
     @Override
-    public ByteArrayOutputStream generateDxf(List<Point> points, List<Pline> lines) throws IOException, GenerationException {
+    public ByteArrayOutputStream generateDxf(List<Point> points, List<Pline> lines) throws IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            DraftDocument draftDocument = new DraftDocument();
-            writeBlocks(draftDocument, points, out);
-            // write lines ...
+            DXFDocument dxfDocument = new DXFDocument("DXF Document");
+            dxfDocument.getGraphics().setTransform(transformationRotate);
+            writeBlocks(dxfDocument, points);
+            writeLines(dxfDocument, lines);
+            String text = dxfDocument.toDXFString();
+            out.write(text.getBytes());
             return out;
         }
     }
 
-    @Override
-    public ByteArrayOutputStream generateKml(List<Point> points) throws IOException {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writeKMLHeader(out);
-            for (Point p : points) {
-                out.write((String.format("<Placemark><name>%s</name><description></description><stileUrl>#z1</stileUrl>" +
-                        "<Point><coordinates>%s,%s,%s</coordinates></Point></Placemark>\r\n", p.name, p.y, p.x, p.h)).getBytes());
-            }
-            out.write(("</Document>\n</kml>").getBytes());
-            return out;
+    private void writeLines(DXFDocument document, List<Pline> lines) {
+        DXFGraphics graphics = document.getGraphics();
+        List<Double> xPoints = new ArrayList<>();
+        List<Double> yPoints = new ArrayList<>();
+        for (Pline line : lines) {
+            line.getPolyline().forEach(point -> {
+                xPoints.add(point.x);
+                yPoints.add(point.y);
+            });
+            graphics.drawPolyline(ArrayUtils.toPrimitive(xPoints.toArray(new Double[0])),
+                    ArrayUtils.toPrimitive(yPoints.toArray(new Double[0])), xPoints.size());
         }
     }
 
-    @Override
-    public ByteArrayOutputStream generateGpx(List<Point> points) throws IOException {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writeGPXHeader(out);
-            for (Point p : points) {
-                out.write((String.format("<wpt lat=\"%s\" lon=\"%s\"><name>%s</name><desc>%s</desc></wpt>\n", p.x, p.y, p.name, p.name)).getBytes());
-            }
-            out.write(("</gpx>").getBytes());
-            return out;
-        }
-    }
-
-    @Override
-    public ByteArrayOutputStream generateDxf(List<Point> points) throws IOException, GenerationException {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            DraftDocument draftDocument = new DraftDocument();
-            return writeBlocks(draftDocument, points, out);
-        }
-    }
-
-    private ByteArrayOutputStream writeBlocks(DraftDocument draftDocument, List<Point> points, ByteArrayOutputStream out) throws GenerationException {
-        draftDocument.addBlock(defaultAutocadBlock);
+    private void writeBlocks(DXFDocument document, List<Point> points) {
+        DXFGraphics graphics = document.getGraphics();
         for (Point p : points) {
-            Insert insert = new Insert();
-            insert.setBlockName(defaultAutocadBlock.getName());
-            Point3D point = new Point3D(p.x, p.y, p.h);
-            insert.setInsertPoint(point);
-
-            Attrib attrib = new Attrib();
-            attrib.setBlockEntity(true);
-            attrib.setBlockAttribute(true);
-            attrib.setTag("NAME");
-            attrib.setInsertPoint(point);
-            attrib.setHeight(20);
-            attrib.setText(p.name);
-            insert.addAttribute(attrib);
-            draftDocument.addEntity(insert);
+            RealPoint point = new RealPoint(p.x, p.y, p.h);
+            DXFCircle circle = new DXFCircle(new RealPoint(p.x, p.y, p.h), Const.CIRCLE_RADIUS, graphics);
+            DXFText text = new DXFText(p.name, shiftPoint(point), dxfStyle, graphics);
+            document.addEntity(circle);
+            document.addEntity(text);
         }
-        dxfGenerator.generate(draftDocument, Collections.emptyMap(), out);
-        return out;
+    }
+
+    private RealPoint shiftPoint(RealPoint point) {
+        return new RealPoint(point.x, point.y + Const.TEXT_SHIFTING, 0);
     }
 
     @Override

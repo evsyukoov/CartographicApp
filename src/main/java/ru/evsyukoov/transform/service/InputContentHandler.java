@@ -1,6 +1,6 @@
 package ru.evsyukoov.transform.service;
 
-import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.model.Client;
 
@@ -10,30 +10,30 @@ import java.io.InputStream;
 
 public interface InputContentHandler {
 
-    FileInfo getInfo(Client client) throws FileNotFoundException, IOException;
+    InputInfo getInfo(Client client) throws FileNotFoundException, IOException;
 
-    FileInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;
+    InputInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;
 
-    FileInfo putInfo(String text, long clientId) throws IOException;
+    InputInfo putInfo(String text, long clientId) throws IOException;
 
-    FileInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
+    InputInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
 
     /**
      * @param text - Текст, отправленный пользователем
      * @return
      */
-    FileInfo parseText(String text);
+    InputInfo parseText(String text);
 
-    FileInfo parseCsv(InputStream inputStream, String charset) throws IOException;
+    InputInfo parseCsv(InputStream inputStream, String charset) throws IOException;
 
-    FileInfo parseTxt(InputStream inputStream, String charset) throws IOException;
+    InputInfo parseTxt(InputStream inputStream, String charset) throws IOException;
 
     /**
      * Парсим только точки, без линий
      * @param inputStream - IS с файлового сервера ТГ
      * @return
      */
-    FileInfo parseKml(InputStream inputStream) throws IOException;
+    InputInfo parseKml(InputStream inputStream) throws IOException;
 
     /**
      * Архив, состоящий из нескольких KML файлов и папок с графическим отображением меток (игнорируем)
@@ -41,19 +41,19 @@ public interface InputContentHandler {
      * @return
      * @throws IOException
      */
-    FileInfo parseKmz(InputStream inputStream) throws IOException;
+    InputInfo parseKmz(InputStream inputStream) throws IOException;
 
     /**
      * Парсим только точки, без линий
      * @param inputStream - IS с файлового сервера ТГ
      * @return
      */
-    FileInfo parseGpx(InputStream inputStream) throws IOException;
+    InputInfo parseGpx(InputStream inputStream) throws IOException;
 
     /**
      * Парсим только блоки и полилинии, имя точки - первый непустой атрибут блока
      * @param inputStream - IS с файлового сервера ТГ
      * @return
      */
-    FileInfo parseDxf(InputStream inputStream);
+    InputInfo parseDxf(InputStream inputStream);
 }

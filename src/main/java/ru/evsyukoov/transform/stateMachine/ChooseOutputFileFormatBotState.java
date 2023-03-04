@@ -11,7 +11,7 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
-import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.model.Client;
@@ -20,6 +20,7 @@ import ru.evsyukoov.transform.service.DocumentGenerator;
 import ru.evsyukoov.transform.service.InputContentHandler;
 import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
+import ru.evsyukoov.transform.utils.Utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,8 +42,6 @@ public class ChooseOutputFileFormatBotState implements BotState {
 
     private final ObjectMapper objectMapper;
 
-    private BotStateFactory stateFactory;
-
     @Autowired
     public ChooseOutputFileFormatBotState(KeyboardService keyboardService,
                                           DataService dataService,
@@ -54,11 +53,6 @@ public class ChooseOutputFileFormatBotState implements BotState {
         this.documentGenerator = documentGenerator;
         this.inputContentHandler = inputContentHandler;
         this.objectMapper = objectMapper;
-    }
-
-    @Autowired
-    public void setStateFactory(@Lazy BotStateFactory stateFactory) {
-        this.stateFactory = stateFactory;
     }
 
     @Override
@@ -104,8 +98,8 @@ public class ChooseOutputFileFormatBotState implements BotState {
         // такой тип перевода не требует запроса системы координат, просто конвертируем файлы, отправляем, конец диалога
         List<PartialBotApiMethod<?>> resp = new ArrayList<>();
         if (type == TransformationType.WGS_TO_WGS) {
-            FileInfo fileInfo = inputContentHandler.getInfo(client);
-            resp.addAll(documentGenerator.createDocuments(outputFormats, client, fileInfo.getPoints()));
+            InputInfo inputInfo = inputContentHandler.getInfo(client);
+            resp.addAll(documentGenerator.createDocuments(Utils.mapToOutputInfo(inputInfo.getPoints(), inputInfo.getPolylines(), outputFormats), client));
             SendMessage startMsg = TelegramUtils.initSendMessage(client.getId(), Messages.INPUT_PROMPT);
             resp.add(startMsg);
             dataService.moveClientToStart(client, true,

@@ -1,13 +1,10 @@
 package ru.evsyukoov.transform.context;
 
 import com.ibm.icu.text.Transliterator;
-import org.kabeja.common.Block;
+import com.jsevy.jdxf.DXFStyle;
 import org.kabeja.dxf.generator.DXFGenerator;
 import org.kabeja.dxf.generator.DXFGeneratorFactory;
 import org.kabeja.dxf.parser.DXFParserBuilder;
-import org.kabeja.entities.AttribDefinition;
-import org.kabeja.entities.Circle;
-import org.kabeja.math.Point3D;
 import org.kabeja.parser.Parser;
 import org.osgeo.proj4j.CRSFactory;
 import org.osgeo.proj4j.CoordinateTransformFactory;
@@ -16,11 +13,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.constants.Const;
+import ru.evsyukoov.transform.dto.InputInfo;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class MainContext {
      * На диск файл также кладем, чтобы в случае ненахода в кеше считать с диска
      */
     @Bean
-    Map<Long, FileInfo> clientFileCache() {
+    Map<Long, InputInfo> clientFileCache() {
         return new ConcurrentHashMap<>();
     }
 
@@ -82,28 +83,21 @@ public class MainContext {
 
     @Bean
     DXFGenerator dxfGenerator() throws IOException {
-        try (InputStream inputStream = MainContext.class.getClassLoader().getResourceAsStream("kabeja/profiles.xml")) {
+        try (InputStream inputStream = new FileInputStream("/Users/19572356/IdeaProjects/CartographicApp/src/main/resources/kabeja/profiles.xml")) {
             return (DXFGenerator) DXFGeneratorFactory.createStreamGenerator(inputStream);
         }
     }
+
     @Bean
-    Block defaultAutocadBlock() {
-        Block block = new Block();
-        Circle circle = new Circle();
-        circle.setBlockEntity(true);
-        circle.setCenterPoint(new Point3D(0, 0, 0));
-        circle.setRadius(1);
-        block.addEntity(circle);
+    AffineTransform transformationRotate() {
+        AffineTransform affineTransform = new AffineTransform();
+        affineTransform.scale(1.0D, -1.0D);
+        return affineTransform;
+    }
 
-        AttribDefinition attribDefinition = new AttribDefinition();
-        attribDefinition.setBlockEntity(true);
-        attribDefinition.setTag("NAME");
-        attribDefinition.setTextFieldLength(100);
-        attribDefinition.setBlockAttribute(false);
-
-        block.addEntity(new AttribDefinition());
-        block.setName("INGGEO_BLOCK");
-        return block;
+    @Bean
+    DXFStyle dxfStyle() {
+        return new DXFStyle(new Font(null, Font.PLAIN, Const.FONT_SIZE));
     }
 
 }

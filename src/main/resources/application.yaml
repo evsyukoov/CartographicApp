@@ -34,5 +34,5 @@ bot:
 file-storage:
   upload: ./uploaded
 
-parser:
-  text-delimetr: ";"
+text:
+  delimetr: ";"

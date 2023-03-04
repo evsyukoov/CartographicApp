@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Файл/текст после парсинга
  */
-public class FileInfo {
+public class InputInfo {
 
     private FileFormat format;
 
@@ -19,6 +19,12 @@ public class FileInfo {
 
     public List<Point> getPoints() {
         return points;
+    }
+
+    private List<Pline> plines = new ArrayList<>();
+
+    public List<Pline> getPolylines() {
+        return plines;
     }
 
     public void setPoints(List<Point> points) {

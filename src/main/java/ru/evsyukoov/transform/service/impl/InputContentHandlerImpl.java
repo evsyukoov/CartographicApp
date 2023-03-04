@@ -24,14 +24,14 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import ru.evsyukoov.transform.dto.Pline;
 import ru.evsyukoov.transform.dto.Point;
-import ru.evsyukoov.transform.dto.AutocadFileInfo;
-import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
 import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.service.InputContentHandler;
+import ru.evsyukoov.transform.utils.Utils;
 
 import javax.xml.parsers.DocumentBuilder;
 import java.io.BufferedReader;
@@ -53,7 +53,7 @@ import java.util.List;
 @Slf4j
 public class InputContentHandlerImpl implements InputContentHandler {
 
-    @Value("${parser.text-delimetr}")
+    @Value("${text.delimetr}")
     private String delimetr;
 
     private static final String KML_COORDS_DELIMETR = ",";
@@ -68,12 +68,15 @@ public class InputContentHandlerImpl implements InputContentHandler {
 
     private static final int CAD_BORDER_LEFT = -1000;
 
-    private final Map<Long, FileInfo> clientFileCache;
+    private final Map<Long, InputInfo> clientFileCache;
+
+    @Value("${file-storage.upload}")
+    private String fileStoragePath;
 
     @Autowired
     public InputContentHandlerImpl(DocumentBuilder documentBuilder,
                                    ApplicationContext context,
-                                   DataService dataService, Map<Long, FileInfo> clientFileCache) {
+                                   DataService dataService, Map<Long, InputInfo> clientFileCache) {
         this.documentBuilder = documentBuilder;
         this.context = context;
         this.dataService = dataService;
@@ -81,118 +84,118 @@ public class InputContentHandlerImpl implements InputContentHandler {
     }
 
     @Override
-    public FileInfo getInfo(Client client) throws IOException {
+    public InputInfo getInfo(Client client) throws IOException {
         if (clientFileCache.isEmpty()) {
             FileFormat format = dataService.getClientFileFormatChoice(client);
             log.info("No file info at app cache for client {}", client);
             String charset = (format == FileFormat.CSV || format  == FileFormat.TXT) ? "windows-1251" : "UTF-8";
-            FileInfo fileInfo = parseFile(new FileInputStream(client.getId() + "." + format.name()),
+            InputInfo inputInfo = parseFile(new FileInputStream(Utils.getLocalFilePath(fileStoragePath, client.getId(), format)),
                     charset, format);
-            return clientFileCache.put(client.getId(), fileInfo);
+            return clientFileCache.put(client.getId(), inputInfo);
         }
         return clientFileCache.get(client.getId());
     }
 
     @Override
-    public FileInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException {
-        FileInfo fileInfo = parseFile(inputStream, charset, format);
-        clientFileCache.put(clientId, fileInfo);
-        return fileInfo;
+    public InputInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException {
+        InputInfo inputInfo = parseFile(inputStream, charset, format);
+        clientFileCache.put(clientId, inputInfo);
+        return inputInfo;
     }
 
     @Override
-    public FileInfo putInfo(String text, long clientId) throws IOException {
-        FileInfo fileInfo = parseText(text);
-        clientFileCache.put(clientId, fileInfo);
-        return fileInfo;
+    public InputInfo putInfo(String text, long clientId) throws IOException {
+        InputInfo inputInfo = parseText(text);
+        clientFileCache.put(clientId, inputInfo);
+        return inputInfo;
     }
 
     @Override
-    public FileInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException {
-        FileInfo fileInfo;
+    public InputInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException {
+        InputInfo inputInfo;
         switch (format) {
             case CSV:
-                fileInfo = this.parseCsv(inputStream, charset);
+                inputInfo = this.parseCsv(inputStream, charset);
                 break;
             case KML:
-                fileInfo = this.parseKml(inputStream);
+                inputInfo = this.parseKml(inputStream);
                 break;
             case GPX:
-                fileInfo = this.parseGpx(inputStream);
+                inputInfo = this.parseGpx(inputStream);
                 break;
             case DXF:
-                fileInfo = this.parseDxf(inputStream);
+                inputInfo = this.parseDxf(inputStream);
                 break;
             case TXT:
-                fileInfo = this.parseTxt(inputStream, charset);
+                inputInfo = this.parseTxt(inputStream, charset);
                 break;
             case KMZ:
-                fileInfo = this.parseKmz(inputStream);
+                inputInfo = this.parseKmz(inputStream);
                 break;
             default:
                 return null;
         }
-        fileInfo.setFormat(format);
-        if (fileInfo.getPoints().isEmpty()) {
+        inputInfo.setFormat(format);
+        if (inputInfo.getPoints().isEmpty()) {
             if (format == FileFormat.DXF) {
-                if (((AutocadFileInfo)fileInfo).getPolylines().isEmpty()
-                        || ((AutocadFileInfo)fileInfo).getPolylines().get(0).getPolyline().isEmpty()) {
+                if (inputInfo.getPolylines().isEmpty()
+                        || inputInfo.getPolylines().get(0).getPolyline().isEmpty()) {
                     return null;
                 }
-                Point p = ((AutocadFileInfo)fileInfo).getPolylines().get(0).getPolyline().get(0);
-                fileInfo.setCoordinatesType(getPointCoordinatesType(p));
-                return fileInfo;
+                Point p = inputInfo.getPolylines().get(0).getPolyline().get(0);
+                inputInfo.setCoordinatesType(getPointCoordinatesType(p));
+                return inputInfo;
             }
             return null;
         }
-        fileInfo.setCoordinatesType(getPointCoordinatesType(fileInfo.getPoints().get(0)));
-        return fileInfo;
+        inputInfo.setCoordinatesType(getPointCoordinatesType(inputInfo.getPoints().get(0)));
+        return inputInfo;
     }
 
     @Override
-    public FileInfo parseText(String text) {
+    public InputInfo parseText(String text) {
         String[] arr = text.split("\n");
         CoordinatesType coordinatesType = null;
-        FileInfo fileInfo = new FileInfo();
+        InputInfo inputInfo = new InputInfo();
         for (String line : arr) {
             Point point = parseTextLine(line);
             checkCoordinateSystem(point, coordinatesType, line);
             coordinatesType = getPointCoordinatesType(point);
-            fileInfo.getPoints().add(point);
+            inputInfo.getPoints().add(point);
         }
-        if (fileInfo.getPoints().isEmpty()) {
+        if (inputInfo.getPoints().isEmpty()) {
             return null;
         }
-        fileInfo.setFormat(FileFormat.CONSOLE_IN);
-        fileInfo.setCoordinatesType(getPointCoordinatesType(fileInfo.getPoints().get(0)));
-        return fileInfo;
+        inputInfo.setFormat(FileFormat.CONSOLE_IN);
+        inputInfo.setCoordinatesType(getPointCoordinatesType(inputInfo.getPoints().get(0)));
+        return inputInfo;
     }
 
     @Override
-    public FileInfo parseCsv(InputStream inputStream, String charset) throws IOException {
+    public InputInfo parseCsv(InputStream inputStream, String charset) throws IOException {
         return parseTxt(inputStream, charset);
     }
 
     @Override
-    public FileInfo parseTxt(InputStream inputStream, String charset) throws IOException {
+    public InputInfo parseTxt(InputStream inputStream, String charset) throws IOException {
         String line;
         BufferedReader fr = new BufferedReader(new InputStreamReader(inputStream, charset));
         CoordinatesType coordinatesType = null;
-        FileInfo fileInfo = new FileInfo();
+        InputInfo inputInfo = new InputInfo();
         while ((line = fr.readLine()) != null) {
             if (!line.isEmpty()) {
                 Point point = parseTextLine(line);
                 checkCoordinateSystem(point, coordinatesType, line);
                 coordinatesType = getPointCoordinatesType(point);
-                fileInfo.getPoints().add(point);
+                inputInfo.getPoints().add(point);
             }
         }
-        return fileInfo;
+        return inputInfo;
     }
 
     @Override
-    public FileInfo parseKml(InputStream inputStream) throws IOException {
-        FileInfo fileInfo = new FileInfo();
+    public InputInfo parseKml(InputStream inputStream) throws IOException {
+        InputInfo inputInfo = new InputInfo();
         try {
             Document doc = documentBuilder.parse(inputStream);
             doc.getDocumentElement().normalize();
@@ -213,10 +216,10 @@ public class InputContentHandlerImpl implements InputContentHandler {
                     point.setName(name);
                     checkCoordinateSystem(point, coordinatesType, coordinates);
                     coordinatesType = getPointCoordinatesType(point);
-                    fileInfo.getPoints().add(point);
+                    inputInfo.getPoints().add(point);
                 }
             }
-            return fileInfo;
+            return inputInfo;
         } catch (SAXException e) {
             String err = "Невозможно прочитать отправленный KML файл";
             log.error(err);
@@ -225,8 +228,8 @@ public class InputContentHandlerImpl implements InputContentHandler {
     }
 
     @Override
-    public FileInfo parseKmz(InputStream inputStream) throws IOException {
-        FileInfo fileInfo = new FileInfo();
+    public InputInfo parseKmz(InputStream inputStream) throws IOException {
+        InputInfo inputInfo = new InputInfo();
         try (ZipInputStream zis = new ZipInputStream(inputStream)) {
             ZipEntry entry;
             String name;
@@ -235,16 +238,16 @@ public class InputContentHandlerImpl implements InputContentHandler {
                 if (!name.substring(name.indexOf('.') + 1).equalsIgnoreCase(FileFormat.KML.name()))
                     continue;
                 ByteArrayInputStream baos = new ByteArrayInputStream(zis.readAllBytes());
-                fileInfo.getPoints().addAll(parseKml(baos).getPoints());
+                inputInfo.getPoints().addAll(parseKml(baos).getPoints());
                 zis.closeEntry();
             }
         }
-        return fileInfo;
+        return inputInfo;
     }
 
     @Override
-    public FileInfo parseGpx(InputStream inputStream) throws IOException {
-        FileInfo fileInfo = new FileInfo();
+    public InputInfo parseGpx(InputStream inputStream) throws IOException {
+        InputInfo inputInfo = new InputInfo();
         try {
             Document doc = documentBuilder.parse(inputStream);
             doc.getDocumentElement().normalize();
@@ -261,10 +264,10 @@ public class InputContentHandlerImpl implements InputContentHandler {
                     Point point = new Point(name, Double.parseDouble(lat), Double.parseDouble(lon), 0.0);
                     checkCoordinateSystem(point, coordinatesType, eElement.getTextContent());
                     coordinatesType = getPointCoordinatesType(point);
-                    fileInfo.getPoints().add(point);
+                    inputInfo.getPoints().add(point);
                 }
             }
-            return fileInfo;
+            return inputInfo;
         } catch (SAXException e) {
             String err = "Невозможно прочитать отправленный GPX файл";
             log.error(err);
@@ -273,19 +276,20 @@ public class InputContentHandlerImpl implements InputContentHandler {
     }
 
     @Override
-    public FileInfo parseDxf(InputStream inputStream) {
+    public InputInfo parseDxf(InputStream inputStream) {
         Parser dxfParser = context.getBean(Parser.class);
-        AutocadFileInfo fileInfo = new AutocadFileInfo();
+        InputInfo inputInfo = new InputInfo();
+        DraftDocument draftDocument = null;
         try {
-            DraftDocument draftDocument = new DraftDocument();
+            draftDocument = new DraftDocument();
             dxfParser.parse(inputStream, draftDocument, Collections.emptyMap());
-            fileInfo.getPoints().addAll(parseDxfBlockInsertions(draftDocument));
-            fileInfo.getPolylines().addAll(parseDxfPolylines(draftDocument));
+            inputInfo.getPoints().addAll(parseDxfBlockInsertions(draftDocument));
+            inputInfo.getPolylines().addAll(parseDxfPolylines(draftDocument));
             log.info("Successfully parse DXF file");
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        return fileInfo;
+        return inputInfo;
     }
 
     private List<Point> parseDxfBlockInsertions(DraftDocument doc) {
@@ -298,12 +302,29 @@ public class InputContentHandlerImpl implements InputContentHandler {
                     Point3D point3D = insert.getInsertPoint();
                     Point point = new Point(point3D.getX(), point3D.getY(), point3D.getZ());
 
-                    Attrib attrib = insert.getAttributes()
+                    Attrib attribName = insert.getAttributes()
                             .stream()
-                            .filter(attr -> StringUtils.hasText(attr.getText()))
+                            .filter(attr -> (StringUtils.hasText(attr.getTag()) && attr.getTag().equalsIgnoreCase("NAME")))
                             .findFirst()
                             .orElse(null);
-                    point.setName(attrib == null ? "UNKNOWN_NAME" : attrib.getText());
+                    if (attribName == null) {
+                        attribName = insert.getAttributes()
+                                .stream()
+                                .filter(attr -> (StringUtils.hasText(attr.getText()) && !attr.getText().startsWith("\\")))
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    Attrib attribHeight = insert.getAttributes()
+                            .stream()
+                            .filter(attr -> (StringUtils.hasText(attr.getTag())
+                                    && (attr.getTag().equalsIgnoreCase("HEIGHT")) ||
+                                    attr.getTag().equalsIgnoreCase("OTMETKA") ||
+                                    attr.getTag().equalsIgnoreCase("ОТМЕТКА") ||
+                                    attr.getTag().equalsIgnoreCase("ВЫСОТА")))
+                            .findFirst()
+                            .orElse(null);
+                    point.setName(attribName == null ? "UNKNOWN_NAME" : attribName.getText() +
+                            (attribHeight != null && StringUtils.hasText(attribHeight.getText()) ? "" : "(h = " + attribHeight.getText() + ")"));
                     points.add(point);
                 });
         return points;
@@ -321,7 +342,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
             Pline line = new Pline();
             for (int j = 0; j < vertexes.size(); j++) {
                 Point p = point3DtoPoint(vertexes.get(j).getPoint());
-                p.setName(i + "_" + j);
+                p.setName(String.valueOf(j + 1));
                 line.addPoint(p);
             }
             polylines.add(line);
@@ -337,7 +358,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
             Pline line = new Pline();
             for (int j = 0; j < vertexes.size(); j++) {
                 Point p = point3DtoPoint(vertexes.get(j).getPoint());
-                p.setName(i + "_" + j);
+                p.setName(String.valueOf(j + 1));
                 line.addPoint(p);
             }
             polylines.add(line);

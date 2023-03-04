@@ -1,20 +1,17 @@
 package ru.evsyukoov.transform.stateMachine;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
-import ru.evsyukoov.transform.dto.FileInfo;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.enums.TransformationType;
@@ -25,6 +22,7 @@ import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.service.InputContentHandler;
 import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
+import ru.evsyukoov.transform.utils.Utils;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
@@ -52,32 +50,21 @@ public class InputBotState implements BotState {
 
     private final InputContentHandler fileParser;
 
-    private final Map<Long, FileInfo> clientFileCache;
-
     private final KeyboardService keyboardService;
 
     private final DataService dataService;
 
     private final ObjectMapper objectMapper;
 
-    private BotStateFactory botStateFactory;
-
     @Autowired
     public InputBotState(InputContentHandler fileParser,
-                         Map<Long, FileInfo> clientFileCache,
                          KeyboardService keyboardService,
                          DataService dataService,
                          ObjectMapper objectMapper) {
         this.fileParser = fileParser;
-        this.clientFileCache = clientFileCache;
         this.keyboardService = keyboardService;
         this.dataService = dataService;
         this.objectMapper = objectMapper;
-    }
-
-    @Autowired
-    public void setBotStateFactory(@Lazy BotStateFactory botStateFactory) {
-        this.botStateFactory = botStateFactory;
     }
 
     @PostConstruct
@@ -115,20 +102,20 @@ public class InputBotState implements BotState {
     @Override
     public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
         try {
-            FileInfo fileInfo;
+            InputInfo inputInfo;
             if (!TelegramUtils.isCallbackMessage(update)) {
                 if (TelegramUtils.isTextMessage(update)) {
-                    fileInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
-                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
+                    inputInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
+                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
                     dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
-                            objectMapper.writeValueAsString(response), fileInfo.getFormat().name());
+                            objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
                     return response;
                 } else if (TelegramUtils.isDocumentMessage(update)) {
                     FileAbout about  = downloadFile(update, client.getId());
-                    fileInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
-                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(fileInfo, client.getId()));
+                    inputInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
+                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
                     dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
-                            objectMapper.writeValueAsString(response), fileInfo.getFormat().name());
+                            objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
                     return response;
                 }
             } else {
@@ -153,9 +140,9 @@ public class InputBotState implements BotState {
         }
     }
 
-    private SendMessage prepareOutputMessage(FileInfo fileInfo, long clientId) {
+    private SendMessage prepareOutputMessage(InputInfo inputInfo, long clientId) {
         Stream<TransformationType> types;
-        if (fileInfo.getCoordinatesType() == CoordinatesType.WGS_84) {
+        if (inputInfo.getCoordinatesType() == CoordinatesType.WGS_84) {
             types = Stream.of(TransformationType.WGS_TO_WGS, TransformationType.WGS_TO_MSK);
         } else {
             types = Stream.of(TransformationType.MSK_TO_WGS, TransformationType.MSK_TO_MSK);
@@ -182,7 +169,7 @@ public class InputBotState implements BotState {
             FileFormat format = findExtension(fileServerPath);
             URL downloadLink = new URL("https://api.telegram.org/file/bot" + token + "/" + fileServerPath);
             String charset = (format == FileFormat.CSV || format == FileFormat.TXT) ? "windows-1251" : "UTF-8";
-            String localFileName = String.format("%s/%d.%s", fileStoragePath, id, format.name());
+            String localFileName = Utils.getLocalFilePath(fileStoragePath, id, format);
             inputInfo = new FileAbout(downloadLink.openStream(), charset, format);
             if (format != FileFormat.KMZ) {
                 downloadTextFileAndSave(downloadLink.openStream(), new File(localFileName), charset);

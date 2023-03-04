@@ -11,11 +11,9 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.evsyukoov.transform.constants.Messages;
-import ru.evsyukoov.transform.dto.Pline;
+import ru.evsyukoov.transform.dto.OutputInfo;
 import ru.evsyukoov.transform.dto.Point;
-import ru.evsyukoov.transform.dto.AutocadFileInfo;
-import ru.evsyukoov.transform.dto.FileInfo;
-import ru.evsyukoov.transform.enums.FileFormat;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.TransformationType;
 import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.service.CoordinateTransformationService;
@@ -24,6 +22,7 @@ import ru.evsyukoov.transform.service.DocumentGenerator;
 import ru.evsyukoov.transform.service.InputContentHandler;
 import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
+import ru.evsyukoov.transform.utils.Utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -102,17 +101,13 @@ public class ChooseSrcCoordinateSystemBotState implements BotState {
 
     private List<PartialBotApiMethod<?>> prepareResponse(Client client, String srcSystem) throws IOException, GenerationException {
         TransformationType type = dataService.getClientTransformationTypeChoice(client);
-        List<Point> points;
-        FileInfo fileInfo = inputContentHandler.getInfo(client);
-        List<Point> srcPoints = fileInfo.getPoints();
+        InputInfo inputInfo = inputContentHandler.getInfo(client);
+        List<Point> srcPoints = inputInfo.getPoints();
         List<PartialBotApiMethod<?>> resp;
-        List<Pline> lines = null;
-        boolean needAutocadLines = fileInfo instanceof AutocadFileInfo;
+        OutputInfo outputInfo;
         if (type == TransformationType.MSK_TO_WGS) {
-            points = coordinateTransformationService.transformPointsMskToWgs(srcPoints, srcSystem);
-            if (needAutocadLines) {
-                lines = coordinateTransformationService.transformLinesMskToWgs(((AutocadFileInfo) fileInfo).getPolylines(), srcSystem);
-            }
+            outputInfo = Utils.mapToOutputInfo(coordinateTransformationService.transformPointsMskToWgs(srcPoints, srcSystem),
+                    coordinateTransformationService.transformLinesMskToWgs(inputInfo.getPolylines(), srcSystem), dataService.getOutputFileFormatChoice(client));
         } else if (type == TransformationType.MSK_TO_MSK) {
             //перекидываем на следуюший стейт
             resp = Collections.singletonList(
@@ -124,12 +119,7 @@ public class ChooseSrcCoordinateSystemBotState implements BotState {
             throw new RuntimeException();
         }
 
-        List<FileFormat> clientFileFormatChoice = dataService.getOutputFileFormatChoice(client);
-        if (lines == null) {
-            resp = new ArrayList<>(documentGenerator.createDocuments(clientFileFormatChoice, client, points));
-        } else {
-            resp = new ArrayList<>(documentGenerator.createDocuments(clientFileFormatChoice, client, points, lines));
-        }
+        resp = new ArrayList<>(documentGenerator.createDocuments(outputInfo, client));
         SendMessage startMsg = TelegramUtils.initSendMessage(client.getId(), Messages.INPUT_PROMPT);
         resp.add(startMsg);
         dataService.moveClientToStart(client, true, objectMapper.writeValueAsString(Collections.singletonList(startMsg)));
