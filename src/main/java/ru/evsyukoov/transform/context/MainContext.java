@@ -19,6 +19,10 @@ import ru.evsyukoov.transform.dto.InputInfo;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.io.FileInputStream;
@@ -98,6 +102,17 @@ public class MainContext {
     @Bean
     DXFStyle dxfStyle() {
         return new DXFStyle(new Font(null, Font.PLAIN, Const.FONT_SIZE));
+    }
+
+    @Bean
+    public Transformer xmlPrettyPrint() throws TransformerConfigurationException {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        transformerFactory.setAttribute("indent-number", 4);
+        Transformer transformer = transformerFactory.newTransformer();
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        return transformer;
     }
 
 }

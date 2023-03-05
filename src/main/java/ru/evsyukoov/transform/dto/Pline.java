@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Pline {
 
-    List<Point> polyline = new ArrayList<>();
+    private List<Point> polyline = new ArrayList<>();
 
     public List<Point> getPolyline() {
         return polyline;

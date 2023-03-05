@@ -9,6 +9,6 @@ import java.util.List;
 
 public interface DocumentGenerator {
 
-    List<SendDocument> createDocuments(OutputInfo outputInfo, Client client) throws IOException;
+    List<SendDocument> createDocuments(OutputInfo outputInfo, Client client) throws IOException, Exception;
 
 }

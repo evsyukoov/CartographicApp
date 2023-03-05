@@ -33,7 +33,7 @@ public class DocumentGeneratorImpl implements DocumentGenerator {
     }
 
     @Override
-    public List<SendDocument> createDocuments(OutputInfo outputInfo, Client client) throws IOException {
+    public List<SendDocument> createDocuments(OutputInfo outputInfo, Client client) throws Exception {
         List<SendDocument> documents = new ArrayList<>();
         for (FileFormat format : outputInfo.getChosenFormat()) {
             ByteArrayOutputStream baos = contentGenerator.generateFile(outputInfo.getPoints(), outputInfo.getLines(), format);

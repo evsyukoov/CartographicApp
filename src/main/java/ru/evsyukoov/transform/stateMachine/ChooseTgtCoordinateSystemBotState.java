@@ -92,7 +92,7 @@ public class ChooseTgtCoordinateSystemBotState implements BotState {
         }
     }
 
-    private List<PartialBotApiMethod<?>> prepareResponse(Client client, String tgtSystem) throws IOException, GenerationException {
+    private List<PartialBotApiMethod<?>> prepareResponse(Client client, String tgtSystem) throws Exception {
         TransformationType type = dataService.getClientTransformationTypeChoice(client);
         InputInfo inputInfo = inputContentHandler.getInfo(client);
         List<Point> srcPoints = inputInfo.getPoints();

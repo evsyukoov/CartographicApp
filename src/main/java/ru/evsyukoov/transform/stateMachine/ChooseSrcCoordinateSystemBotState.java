@@ -99,7 +99,7 @@ public class ChooseSrcCoordinateSystemBotState implements BotState {
         }
     }
 
-    private List<PartialBotApiMethod<?>> prepareResponse(Client client, String srcSystem) throws IOException, GenerationException {
+    private List<PartialBotApiMethod<?>> prepareResponse(Client client, String srcSystem) throws Exception {
         TransformationType type = dataService.getClientTransformationTypeChoice(client);
         InputInfo inputInfo = inputContentHandler.getInfo(client);
         List<Point> srcPoints = inputInfo.getPoints();

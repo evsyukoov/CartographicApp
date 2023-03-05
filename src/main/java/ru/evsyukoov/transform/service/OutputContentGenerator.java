@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface OutputContentGenerator {
 
-    ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws IOException;
+    ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws Exception;
 
     ByteArrayOutputStream generateCsv(List<Point> points, List<Pline> lines) throws IOException;
 
@@ -18,7 +18,7 @@ public interface OutputContentGenerator {
 
     ByteArrayOutputStream generateDxf(List<Point> points, List<Pline> lines) throws IOException;
 
-    ByteArrayOutputStream generateKml(List<Point> points, List<Pline> lines) throws IOException;
+    ByteArrayOutputStream generateKml(List<Point> points, List<Pline> lines) throws Exception;
 
-    ByteArrayOutputStream generateGpx(List<Point> points, List<Pline> lines) throws IOException;
+    ByteArrayOutputStream generateGpx(List<Point> points, List<Pline> lines) throws Exception;
 }

@@ -12,13 +12,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 import ru.evsyukoov.transform.constants.Const;
 import ru.evsyukoov.transform.dto.Pline;
 import ru.evsyukoov.transform.dto.Point;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.service.OutputContentGenerator;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.awt.geom.AffineTransform;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -33,18 +43,21 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
 
     private final DXFStyle dxfStyle;
 
+    private final Transformer xmlPrettyPrint;
+
     @Value("${text.delimetr}")
     private String delimetr;
 
     @Autowired
     public OutputContentGeneratorImpl(AffineTransform transformationRotate,
-                                      DXFStyle dxfStyle) {
+                                      DXFStyle dxfStyle, Transformer xmlPrettyPrint) {
         this.transformationRotate = transformationRotate;
         this.dxfStyle = dxfStyle;
+        this.xmlPrettyPrint = xmlPrettyPrint;
     }
 
     @Override
-    public ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws IOException {
+    public ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws Exception {
         if (CollectionUtils.isEmpty(points)) {
             return null;
         }
@@ -132,7 +145,7 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
     }
 
     @Override
-    public ByteArrayOutputStream generateKml(List<Point> points, List<Pline> lines) throws IOException {
+    public ByteArrayOutputStream generateKml(List<Point> points, List<Pline> lines) throws Exception {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             writeKMLHeader(out);
             for (Point p : points) {
@@ -151,12 +164,12 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
                 i++;
             }
             out.write(("</Document>\n</kml>").getBytes());
-            return out;
+            return xmlPrettyPrint(out);
         }
     }
 
     @Override
-    public ByteArrayOutputStream generateGpx(List<Point> points, List<Pline> lines) throws IOException {
+    public ByteArrayOutputStream generateGpx(List<Point> points, List<Pline> lines) throws Exception {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             writeGPXHeader(out);
             for (Point p : points) {
@@ -170,8 +183,17 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
                 out.write("</trkseg></trk>".getBytes());
             }
             out.write("</gpx>".getBytes());
-            return out;
+            return xmlPrettyPrint(out);
         }
+    }
+
+    private ByteArrayOutputStream xmlPrettyPrint(ByteArrayOutputStream baos) throws TransformerException, ParserConfigurationException, IOException, SAXException {
+        InputSource inputSource= new InputSource(new ByteArrayInputStream(baos.toByteArray()));
+        Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputSource);
+
+        ByteArrayOutputStream baosAfterPrettyPrint = new ByteArrayOutputStream();
+        xmlPrettyPrint.transform(new DOMSource(document), new StreamResult(baosAfterPrettyPrint));
+        return baosAfterPrettyPrint;
     }
 
     private void writeKMLHeader(OutputStream out) throws IOException {

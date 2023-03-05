@@ -22,9 +22,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.dto.Pline;
 import ru.evsyukoov.transform.dto.Point;
-import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
@@ -43,11 +43,11 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -76,7 +76,8 @@ public class InputContentHandlerImpl implements InputContentHandler {
     @Autowired
     public InputContentHandlerImpl(DocumentBuilder documentBuilder,
                                    ApplicationContext context,
-                                   DataService dataService, Map<Long, InputInfo> clientFileCache) {
+                                   DataService dataService,
+                                   Map<Long, InputInfo> clientFileCache) {
         this.documentBuilder = documentBuilder;
         this.context = context;
         this.dataService = dataService;
@@ -88,7 +89,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
         if (clientFileCache.isEmpty()) {
             FileFormat format = dataService.getClientFileFormatChoice(client);
             log.info("No file info at app cache for client {}", client);
-            String charset = (format == FileFormat.CSV || format  == FileFormat.TXT) ? "windows-1251" : "UTF-8";
+            String charset = (format == FileFormat.CSV || format == FileFormat.TXT) ? "windows-1251" : "UTF-8";
             InputInfo inputInfo = parseFile(new FileInputStream(Utils.getLocalFilePath(fileStoragePath, client.getId(), format)),
                     charset, format);
             return clientFileCache.put(client.getId(), inputInfo);
@@ -137,16 +138,13 @@ public class InputContentHandlerImpl implements InputContentHandler {
         }
         inputInfo.setFormat(format);
         if (inputInfo.getPoints().isEmpty()) {
-            if (format == FileFormat.DXF) {
-                if (inputInfo.getPolylines().isEmpty()
-                        || inputInfo.getPolylines().get(0).getPolyline().isEmpty()) {
-                    return null;
-                }
-                Point p = inputInfo.getPolylines().get(0).getPolyline().get(0);
-                inputInfo.setCoordinatesType(getPointCoordinatesType(p));
-                return inputInfo;
+            if (inputInfo.getPolylines().isEmpty()
+                    || inputInfo.getPolylines().get(0).getPolyline().isEmpty()) {
+                return null;
             }
-            return null;
+            Point p = inputInfo.getPolylines().get(0).getPolyline().get(0);
+            inputInfo.setCoordinatesType(getPointCoordinatesType(p));
+            return inputInfo;
         }
         inputInfo.setCoordinatesType(getPointCoordinatesType(inputInfo.getPoints().get(0)));
         return inputInfo;
@@ -202,21 +200,33 @@ public class InputContentHandlerImpl implements InputContentHandler {
             NodeList nodeList = doc.getElementsByTagName("Placemark");
             checkPoints(nodeList);
             CoordinatesType coordinatesType = null;
-            for(int i = 0; i < nodeList.getLength(); i++) {
+            for (int i = 0; i < nodeList.getLength(); i++) {
                 Node node = nodeList.item(i);
                 Element eElement = (Element) node;
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     NodeList pointNode = eElement.getElementsByTagName("Point");
-                    if (pointNode == null || pointNode.getLength() == 0) {
-                        continue;
+                    NodeList lineNode = eElement.getElementsByTagName("LineString");
+                    if (pointNode != null && pointNode.getLength() != 0) {
+                        String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent();
+                        String name = eElement.getElementsByTagName("name").item(0).getTextContent();
+                        Point point = parseKmlLine(coordinates);
+                        point.setName(name);
+                        checkCoordinateSystem(point, coordinatesType, coordinates);
+                        coordinatesType = getPointCoordinatesType(point);
+                        inputInfo.getPoints().add(point);
+                    } else if (lineNode != null && lineNode.getLength() != 0) {
+                        String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent();
+                        Pline pline = new Pline();
+                        String[] pointsCoords = coordinates.split("\\s+");
+                        int j = 1;
+                        for (String line : pointsCoords) {
+                            Point p = parseKmlLine(line);
+                            checkCoordinateSystem(p, coordinatesType, line);
+                            pline.addPoint(p);
+                            p.setName(String.valueOf(j++));
+                        }
+                        inputInfo.getPolylines().add(pline);
                     }
-                    String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent();
-                    String name = eElement.getElementsByTagName("name").item(0).getTextContent();
-                    Point point = parseKmlLine(coordinates);
-                    point.setName(name);
-                    checkCoordinateSystem(point, coordinatesType, coordinates);
-                    coordinatesType = getPointCoordinatesType(point);
-                    inputInfo.getPoints().add(point);
                 }
             }
             return inputInfo;
@@ -251,11 +261,11 @@ public class InputContentHandlerImpl implements InputContentHandler {
         try {
             Document doc = documentBuilder.parse(inputStream);
             doc.getDocumentElement().normalize();
-            NodeList nodeList = doc.getElementsByTagName("wpt");
-            checkPoints(nodeList);
+            NodeList nodeListPoints = doc.getElementsByTagName("wpt");
+            checkPoints(nodeListPoints);
             CoordinatesType coordinatesType = null;
-            for(int i = 0; i < nodeList.getLength(); i++) {
-                Node node = nodeList.item(i);
+            for (int i = 0; i < nodeListPoints.getLength(); i++) {
+                Node node = nodeListPoints.item(i);
                 Element eElement = (Element) node;
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     String lat = eElement.getAttribute("lat");
@@ -267,6 +277,32 @@ public class InputContentHandlerImpl implements InputContentHandler {
                     inputInfo.getPoints().add(point);
                 }
             }
+            NodeList nodeListLines = doc.getElementsByTagName("trkseg");
+            List<Pline> parsedLines = new ArrayList<>();
+            for (int i = 0; i < nodeListLines.getLength(); i++) {
+                Node segment = nodeListLines.item(i);
+                Pline line = new Pline();
+                NodeList lines = segment.getChildNodes();
+                for (int j = 0; j < lines.getLength(); j++) {
+                    Node nodeCoord = lines.item(j);
+                    String lat = null;
+                    String lon = null;
+                    if (nodeCoord.getNodeType() == Node.ELEMENT_NODE) {
+                        Element eElement = (Element) nodeCoord;
+                        lat = eElement.getAttribute("lat");
+                        lon = eElement.getAttribute("lon");
+                    }
+                    if (lat != null && lon != null) {
+                        Point point = new Point(String.valueOf(j++), Double.parseDouble(lat), Double.parseDouble(lon), 0.0);
+                        line.addPoint(point);
+                    }
+
+                }
+                if (!line.getPolyline().isEmpty()) {
+                    parsedLines.add(line);
+                }
+            }
+            inputInfo.getPolylines().addAll(parsedLines);
             return inputInfo;
         } catch (SAXException e) {
             String err = "Невозможно прочитать отправленный GPX файл";
@@ -373,7 +409,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
     private boolean isBlockAtTheDrawingBorder(Insert insert) {
         Point3D point = insert.getInsertPoint();
         return point.getX() <= CAD_BORDER_RIGHT && point.getX() >= CAD_BORDER_LEFT &&
-               point.getY() <= CAD_BORDER_RIGHT && point.getY() >= CAD_BORDER_LEFT;
+                point.getY() <= CAD_BORDER_RIGHT && point.getY() >= CAD_BORDER_LEFT;
     }
 
     private Point parseTextLine(String line) {
@@ -386,7 +422,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
         }
         try {
             return new Point(splitted[0], Double.parseDouble(splitted[1]), Double.parseDouble(splitted[2]),
-                        (splitted.length == 4 ? Double.parseDouble(splitted[3]) : h));
+                    (splitted.length == 4 ? Double.parseDouble(splitted[3]) : h));
         } catch (Exception e) {
             String err = String.format("Ошибочный текст, строка: %s", line);
             log.error(err, e);

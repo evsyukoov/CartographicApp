@@ -89,7 +89,7 @@ public class ChooseOutputFileFormatBotState implements BotState {
         }
     }
 
-    private List<PartialBotApiMethod<?>> prepareResponse(Client client, List<FileFormat> outputFormats) throws IOException, GenerationException {
+    private List<PartialBotApiMethod<?>> prepareResponse(Client client, List<FileFormat> outputFormats) throws Exception {
         TransformationType type = dataService.getClientTransformationTypeChoice(client);
         if (CollectionUtils.isEmpty(outputFormats)) {
             log.warn("Client {} doesn't pressed any button", client);
