@@ -2,9 +2,7 @@ package ru.evsyukoov.transform.stateMachine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.kabeja.io.GenerationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -22,7 +20,6 @@ import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 import ru.evsyukoov.transform.utils.Utils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,26 +63,20 @@ public class ChooseOutputFileFormatBotState implements BotState {
     }
 
     @Override
-    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
-        try {
-            log.info("{} state, client {}", getState().name(), client);
-            if (!TelegramUtils.isCallbackMessage(update)) {
-                return Collections.singletonList(
-                        TelegramUtils.initSendMessage(client.getId(), Messages.FILE_FORMAT_CHOICE));
-            } else {
-                String text = update.getCallbackQuery().getData();
-                if (text.equals(Messages.APPROVE)) {
-                    List<FileFormat> outputFormats = keyboardService.getPressedItems(update, client.getId()).stream()
-                            .map(FileFormat::valueOf)
-                            .collect(Collectors.toList());
-                    return prepareResponse(client, outputFormats);
-                }
-                return Collections.singletonList(
-                        keyboardService.pressButtonsChoiceHandle(update, client.getId()));
-            }
-        } catch (Exception e) {
-            log.error("FATAL ERROR: ", e);
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
+        log.info("{} state, client {}", getState().name(), client);
+        if (!TelegramUtils.isCallbackMessage(update)) {
             return Collections.emptyList();
+        } else {
+            String text = update.getCallbackQuery().getData();
+            if (text.equals(Messages.APPROVE)) {
+                List<FileFormat> outputFormats = keyboardService.getPressedItems(update, client.getId()).stream()
+                        .map(FileFormat::valueOf)
+                        .collect(Collectors.toList());
+                return prepareResponse(client, outputFormats);
+            }
+            return Collections.singletonList(
+                    keyboardService.pressButtonsChoiceHandle(update, client.getId()));
         }
     }
 
@@ -100,20 +91,22 @@ public class ChooseOutputFileFormatBotState implements BotState {
         if (type == TransformationType.WGS_TO_WGS) {
             InputInfo inputInfo = inputContentHandler.getInfo(client);
             resp.addAll(documentGenerator.createDocuments(Utils.mapToOutputInfo(inputInfo.getPoints(), inputInfo.getPolylines(), outputFormats), client));
-            SendMessage startMsg = TelegramUtils.initSendMessage(client.getId(), Messages.INPUT_PROMPT);
+            SendMessage startMsg = keyboardService.prepareOptionalKeyboard(Collections.singletonList(Messages.HELP),
+                    client.getId(),
+                    Messages.INPUT_PROMPT);;
             resp.add(startMsg);
             dataService.moveClientToStart(client, true,
                     objectMapper.writeValueAsString(Collections.singletonList(startMsg)));
         } else if (type == TransformationType.WGS_TO_MSK) {
             resp = Collections.singletonList(
-                    keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK), client.getId(), Messages.COORDINATE_SYSTEM_TARGET_CHOICE));
+                    keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK, Messages.HELP), client.getId(), Messages.COORDINATE_SYSTEM_TARGET_CHOICE));
             String clientChoice = outputFormats.stream().map(FileFormat::name).collect(Collectors.joining(","));
             dataService.updateClientState(client, State.CHOOSE_SYSTEM_COORDINATE_TGT,
                     objectMapper.writeValueAsString(resp), clientChoice);
             return resp;
         } else if (type == TransformationType.MSK_TO_WGS || type == TransformationType.MSK_TO_MSK) {
             resp = Collections.singletonList(
-                    keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK), client.getId(), Messages.COORDINATE_SYSTEM_SRC_CHOICE));
+                    keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK, Messages.HELP), client.getId(), Messages.COORDINATE_SYSTEM_SRC_CHOICE));
             String clientChoice = outputFormats.stream().map(FileFormat::name).collect(Collectors.joining(","));
             dataService.updateClientState(client, State.CHOOSE_SYSTEM_COORDINATE_SRC,
                     objectMapper.writeValueAsString(resp), clientChoice);

@@ -1,40 +1,33 @@
 package ru.evsyukoov.transform.handlers;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import lombok.extern.slf4j.Slf4j;
+import org.osgeo.proj4j.Proj4jException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.SerializationUtils;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.inputmessagecontent.InputTextMessageContent;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResult;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultArticle;
 import ru.evsyukoov.transform.constants.Messages;
+import ru.evsyukoov.transform.exceptions.UploadFileException;
+import ru.evsyukoov.transform.exceptions.WrongFileFormatException;
 import ru.evsyukoov.transform.model.Client;
 import ru.evsyukoov.transform.model.StateHistory;
 import ru.evsyukoov.transform.service.DataService;
+import ru.evsyukoov.transform.service.KeyboardService;
 import ru.evsyukoov.transform.stateMachine.BotState;
 import ru.evsyukoov.transform.stateMachine.BotStateFactory;
-import ru.evsyukoov.transform.stateMachine.State;
 import ru.evsyukoov.transform.utils.TelegramUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.io.StringReader;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,13 +42,17 @@ public class MessageHandler {
 
     private final ObjectMapper objectMapper;
 
+    private final KeyboardService keyboardService;
+
     @Autowired
     public MessageHandler(DataService dataService,
                           BotStateFactory stateFactory,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          KeyboardService keyboardService) {
         this.stateFactory = stateFactory;
         this.dataService = dataService;
         this.objectMapper = objectMapper;
+        this.keyboardService = keyboardService;
     }
 
     public List<PartialBotApiMethod<?>> prepareMessage(Update update) throws IOException {
@@ -69,15 +66,42 @@ public class MessageHandler {
         if (client == null) {
             client = dataService.createNewClient(clientId, getName(update), getNickName(update));
         }
-        BotState currentState = stateFactory.initState(client);
         List<PartialBotApiMethod<?>> commonResponse = handleStartMessage(client, update);
         if (commonResponse != null) {
             dataService.moveClientToStart(client, false,
                     objectMapper.writeValueAsString(commonResponse));
             return commonResponse;
         }
+        commonResponse = handleHelpMessage(client, update);
+        if (commonResponse != null) {
+            return commonResponse;
+        }
         commonResponse = handleBackMessage(client, update);
-        return commonResponse == null ? currentState.handleMessage(client, update) : commonResponse;
+        if (commonResponse != null) {
+            return commonResponse;
+        }
+        try {
+            BotState currentState = stateFactory.initState(client);
+            commonResponse = currentState.handleMessage(client, update);
+        } catch (Exception e) {
+            dataService.moveClientToStart(client, false,
+                    objectMapper.writeValueAsString(initStartMessage(client)));
+            if (e instanceof WrongFileFormatException) {
+                log.error("Error with message format: ", e);
+                return initStartMessage(client, e.getMessage());
+            } else if (e instanceof UploadFileException) {
+                log.error("Error while upload file: ", e);
+                return initStartMessage(client, e.getMessage());
+            } else if (e instanceof Proj4jException || e instanceof IllegalStateException) {
+                String err = "Не удалось трансформировать точки";
+                log.error("Error: {}, ex: ", err, e);
+                return initStartMessage(client, err);
+            } else {
+                log.error("FATAL ERROR: ", e);
+                return initStartMessage(client, Messages.FATAL_ERROR);
+            }
+        }
+        return commonResponse;
     }
 
     private List<PartialBotApiMethod<?>> handleBackMessage(Client client, Update update) throws IOException {
@@ -86,7 +110,8 @@ public class MessageHandler {
             if (!CollectionUtils.isEmpty(history)) {
                 StateHistory lastState = dataService.removeLastStateAndGet(client);
                 List<Serializable> lastResp = objectMapper.readValue(lastState.getResponse(),
-                        new TypeReference<List<Serializable>>() {});
+                        new TypeReference<List<Serializable>>() {
+                        });
                 List<PartialBotApiMethod<?>> response = new ArrayList<>();
                 for (Serializable respElem : lastResp) {
                     String messageType = JsonPath.read(respElem, "$.method");
@@ -101,10 +126,30 @@ public class MessageHandler {
         return null;
     }
 
-    private List<PartialBotApiMethod<?>> handleStartMessage(Client client, Update update) throws JsonProcessingException {
+    private List<PartialBotApiMethod<?>> initStartMessage(Client client, String message) {
+        return Collections.singletonList(
+                keyboardService.prepareOptionalKeyboard(Collections.singletonList(Messages.HELP),
+                        client.getId(),
+                        message + "\n" + Messages.INPUT_PROMPT));
+    }
+
+    private List<PartialBotApiMethod<?>> initStartMessage(Client client) {
+        return Collections.singletonList(
+                keyboardService.prepareOptionalKeyboard(Collections.singletonList(Messages.HELP),
+                        client.getId(),
+                        Messages.INPUT_PROMPT));
+    }
+
+    private List<PartialBotApiMethod<?>> handleStartMessage(Client client, Update update) {
         if (TelegramUtils.isStartMessage(update)) {
-            return Collections.singletonList(
-                    TelegramUtils.initSendMessage(client.getId(), Messages.INPUT_PROMPT));
+            return initStartMessage(client);
+        }
+        return null;
+    }
+
+    private List<PartialBotApiMethod<?>> handleHelpMessage(Client client, Update update) {
+        if (TelegramUtils.isHelpMessage(update)) {
+            return Collections.singletonList(keyboardService.helpButtonHandle(update, client.getId()));
         }
         return null;
     }

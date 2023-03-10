@@ -40,7 +40,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -83,13 +82,6 @@ public class InputBotState implements BotState {
     private String fileStoragePath;
 
     @Override
-    public SendMessage getStartMessage(long clientId) {
-        return keyboardService.prepareOptionalKeyboard(
-                Collections.singletonList(Messages.HELP), clientId, getStateMessage()
-        );
-    }
-
-    @Override
     public String getStateMessage() {
         return Messages.INPUT_PROMPT;
     }
@@ -100,44 +92,25 @@ public class InputBotState implements BotState {
     }
 
     @Override
-    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
-        try {
-            InputInfo inputInfo;
-            if (!TelegramUtils.isCallbackMessage(update)) {
-                if (TelegramUtils.isTextMessage(update)) {
-                    inputInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
-                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
-                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
-                            objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
-                    return response;
-                } else if (TelegramUtils.isDocumentMessage(update)) {
-                    FileAbout about  = downloadFile(update, client.getId());
-                    inputInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
-                    List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
-                    dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
-                            objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
-                    return response;
-                }
-            } else {
-//                if (TelegramUtils.isHelpMessage(update)) {
-//                    dataService.updateClientState(client, State.HELP, State.INPUT);
-//                    BotState next = botStateFactory.initState(client);
-//                    return List.of(
-//                            keyboardService.prepareOptionalKeyboard(List.of(Messages.BACK), client.getId(), next.getStateMessage()));
-//                }
-                return Collections.singletonList(
-                        TelegramUtils.initSendMessage(client.getId(), getStateMessage()));
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
+        InputInfo inputInfo;
+        if (!TelegramUtils.isCallbackMessage(update)) {
+            if (TelegramUtils.isTextMessage(update)) {
+                inputInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
+                List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
+                dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
+                        objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
+                return response;
+            } else if (TelegramUtils.isDocumentMessage(update)) {
+                FileAbout about = downloadFile(update, client.getId());
+                inputInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
+                List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
+                dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
+                        objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
+                return response;
             }
-            return List.of(
-                    TelegramUtils.initSendMessage(client.getId(), Messages.WRONG_FORMAT_MESSAGE), getStartMessage(client.getId()));
-        } catch (WrongFileFormatException | UploadFileException e) {
-            return List.of(
-                    TelegramUtils.initSendMessage(client.getId(), List.of(e.getMessage(), getStateMessage())));
-        } catch (Exception e) {
-            log.error("FATAL ERROR: ", e);
-            return Collections.singletonList(
-                    TelegramUtils.initSendMessage(client.getId(), List.of(Messages.FATAL_ERROR, getStateMessage())));
         }
+        throw new WrongFileFormatException(Messages.WRONG_FORMAT_MESSAGE);
     }
 
     private SendMessage prepareOutputMessage(InputInfo inputInfo, long clientId) {
@@ -148,7 +121,7 @@ public class InputBotState implements BotState {
             types = Stream.of(TransformationType.MSK_TO_WGS, TransformationType.MSK_TO_MSK);
         }
         return keyboardService.prepareKeyboard(types.map(TransformationType::getDescription).collect(Collectors.toList()),
-                List.of(Messages.BACK), clientId, Messages.TRANSFORMATION_TYPE_CHOICE);
+                List.of(Messages.BACK, Messages.HELP), clientId, Messages.TRANSFORMATION_TYPE_CHOICE);
     }
 
     private String getFileServerPath(Document document) throws IOException {
@@ -185,7 +158,7 @@ public class InputBotState implements BotState {
         return inputInfo;
     }
 
-    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException{
+    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException {
         try (FileWriter fw = new FileWriter(localFile);
              BufferedReader uploadIn = new BufferedReader(new InputStreamReader(serverInputStream, charset))) {
             String s;

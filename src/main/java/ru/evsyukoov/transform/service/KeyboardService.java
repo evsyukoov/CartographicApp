@@ -1,5 +1,6 @@
 package ru.evsyukoov.transform.service;
 
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -43,5 +44,7 @@ public interface KeyboardService {
     EditMessageReplyMarkup pressButtonsChoiceHandle(Update update, long id);
 
     List<String> getPressedItems(Update update, long id);
+
+    AnswerCallbackQuery helpButtonHandle(Update update, long id);
 
 }

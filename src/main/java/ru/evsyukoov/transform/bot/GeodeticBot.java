@@ -7,7 +7,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -78,6 +78,8 @@ public class GeodeticBot extends TelegramLongPollingBot {
                 this.execute((EditMessageReplyMarkup) method);
             } else if (method instanceof SendVideo) {
                 this.execute((SendVideo) method);
+            } else if (method instanceof AnswerCallbackQuery) {
+                this.execute((AnswerCallbackQuery) method);
             }
         }
     }

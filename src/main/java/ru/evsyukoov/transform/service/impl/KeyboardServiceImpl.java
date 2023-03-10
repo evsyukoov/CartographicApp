@@ -3,13 +3,11 @@ package ru.evsyukoov.transform.service.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.service.KeyboardService;
@@ -48,11 +46,15 @@ public class KeyboardServiceImpl implements KeyboardService {
         inlinePrompt.setSwitchInlineQueryCurrentChat("");
         inlinePrompt.setText(Messages.INLINE_BUTTON_NAME);
 
-        InlineKeyboardButton back = new InlineKeyboardButton();
-        back.setText(Messages.BACK);
-        back.setCallbackData(Messages.BACK);
-
-        markup.setKeyboard(List.of(List.of(inlinePrompt, back)));
+        List<InlineKeyboardButton> keyboardButtons = optionalButtons.stream()
+                .map(butt -> {
+                            InlineKeyboardButton button = new InlineKeyboardButton();
+                            button.setText(butt);
+                            button.setCallbackData(butt);
+                            return button;
+        }).collect(Collectors.toList());
+        keyboardButtons.add(0, inlinePrompt);
+        markup.setKeyboard(List.of(keyboardButtons));
         SendMessage sendMessage = new SendMessage();
         sendMessage.setReplyMarkup(markup);
         sendMessage.setText(text);
@@ -114,6 +116,39 @@ public class KeyboardServiceImpl implements KeyboardService {
                 .filter(str -> str.startsWith(Messages.CONFIRM_SYMBOL))
                 .map(str -> str.substring(Messages.CONFIRM_SYMBOL.length()))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public AnswerCallbackQuery helpButtonHandle(Update update, long id) {
+//        InlineKeyboardMarkup markup = update.getCallbackQuery().getMessage().getReplyMarkup();
+//        String message = update.getCallbackQuery().getData();
+//        InlineKeyboardButton button = markup.getKeyboard()
+//                .stream()
+//                .flatMap(Collection::stream)
+//                .findFirst()
+//                .orElse(null);
+//        if (button == null) {
+//            log.warn("Error while find pressed button");
+//            return null;
+//        }
+//        if (message.equals(Messages.HELP_DOWN)) {
+//            button.setText(Messages.HELP_UP.concat(Messages.HELP_PROMPT));
+//            button.setCallbackData(Messages.HELP_UP);
+//        } else {
+//            button.setText(Messages.HELP_DOWN);
+//            button.setCallbackData(Messages.HELP_DOWN);
+//        }
+//
+//        return EditMessageReplyMarkup.builder()
+//                .chatId(String.valueOf(id))
+//                .messageId(update.getCallbackQuery().getMessage().getMessageId())
+//                .replyMarkup(markup)
+//                .build();
+        AnswerCallbackQuery answer = new AnswerCallbackQuery();
+        answer.setCallbackQueryId(update.getCallbackQuery().getId());
+        answer.setShowAlert(true);
+        answer.setText(Messages.HELP_PROMPT);
+        return answer;
     }
 
     private InlineKeyboardButton findPressedButton(InlineKeyboardMarkup markup, String text) {

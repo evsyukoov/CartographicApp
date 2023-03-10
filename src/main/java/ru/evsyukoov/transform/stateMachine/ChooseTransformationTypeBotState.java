@@ -57,29 +57,23 @@ public class ChooseTransformationTypeBotState implements BotState {
     }
 
     @Override
-    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) {
+    public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
         log.info("{} state, client {}", getState().name(), client);
-        try {
-            if (!TelegramUtils.isCallbackMessage(update)) {
+        if (!TelegramUtils.isCallbackMessage(update)) {
+            return Collections.emptyList();
+        } else {
+            String payload = update.getCallbackQuery().getData().substring(Messages.CONFIRM_SYMBOL.length() + 1);
+            TransformationType choice = TransformationType.getTypeByDescription(payload);
+            if (choice == null) {
                 return Collections.emptyList();
             } else {
-                String payload = update.getCallbackQuery().getData().substring(Messages.CONFIRM_SYMBOL.length() + 1);
-                TransformationType choice = TransformationType.getTypeByDescription(payload);
-                if (choice == null) {
-                    return Collections.emptyList();
-                } else {
-                    EditMessageReplyMarkup markup = keyboardService.pressButtonsChoiceHandle(update, client.getId());
-                    InputInfo inputInfo = inputContentHandler.getInfo(client);
-                    List<PartialBotApiMethod<?>> resp = List.of(markup, prepareOutputMessage(inputInfo, Messages.FILE_FORMAT_CHOICE, client.getId(), choice));
-                    dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION,
-                            objectMapper.writeValueAsString(resp), choice.name());
-                    return resp;
-                }
+                EditMessageReplyMarkup markup = keyboardService.pressButtonsChoiceHandle(update, client.getId());
+                InputInfo inputInfo = inputContentHandler.getInfo(client);
+                List<PartialBotApiMethod<?>> resp = List.of(markup, prepareOutputMessage(inputInfo, Messages.FILE_FORMAT_CHOICE, client.getId(), choice));
+                dataService.updateClientState(client, State.CHOOSE_OUTPUT_FILE_OPTION,
+                        objectMapper.writeValueAsString(resp), choice.name());
+                return resp;
             }
-        } catch (Exception e) {
-            log.error("FATAL ERROR: ", e);
-            return Collections.singletonList(
-                    TelegramUtils.initSendMessage(client.getId(), List.of(Messages.FATAL_ERROR, getStateMessage())));
         }
     }
 
@@ -87,7 +81,7 @@ public class ChooseTransformationTypeBotState implements BotState {
         List<String> outputFormats = prepareOutputFormats(inputInfo, type).stream()
                 .map(FileFormat::getDescription)
                 .collect(Collectors.toList());
-        List<String> optional = List.of(Messages.APPROVE, Messages.BACK);
+        List<String> optional = List.of(Messages.APPROVE, Messages.BACK, Messages.HELP);
         return keyboardService.prepareKeyboard(outputFormats, optional, clientId, textMessage);
     }
 
