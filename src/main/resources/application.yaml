@@ -38,4 +38,4 @@ text:
   delimetr: ";"
 
 update:
-  notification: true
+  notification: false
