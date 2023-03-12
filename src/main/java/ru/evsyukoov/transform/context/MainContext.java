@@ -87,7 +87,7 @@ public class MainContext {
 
     @Bean
     DXFGenerator dxfGenerator() throws IOException {
-        try (InputStream inputStream = new FileInputStream("/Users/19572356/IdeaProjects/CartographicApp/src/main/resources/kabeja/profiles.xml")) {
+        try (InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("./kabeja/profiles.xml")) {
             return (DXFGenerator) DXFGeneratorFactory.createStreamGenerator(inputStream);
         }
     }
