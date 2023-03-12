@@ -27,9 +27,6 @@ public class StateHistory {
     @Column(name = "state")
     private State state;
 
-    @Column(name = "order_num")
-    private int orderNum;
-
     @Column(name = "response")
     private String response;
 
@@ -58,14 +55,6 @@ public class StateHistory {
 
     public void setState(State state) {
         this.state = state;
-    }
-
-    public int getOrderNum() {
-        return orderNum;
-    }
-
-    public void setOrderNum(int orderNum) {
-        this.orderNum = orderNum;
     }
 
     public String getResponse() {

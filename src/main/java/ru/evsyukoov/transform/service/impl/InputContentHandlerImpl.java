@@ -85,14 +85,20 @@ public class InputContentHandlerImpl implements InputContentHandler {
     }
 
     @Override
+    public void removeInfo(Client client) {
+        clientFileCache.remove(client.getId());
+    }
+
+    @Override
     public InputInfo getInfo(Client client) throws IOException {
-        if (clientFileCache.isEmpty()) {
+        if (clientFileCache.isEmpty() || !clientFileCache.containsKey(client.getId())) {
             FileFormat format = dataService.getClientFileFormatChoice(client);
             log.info("No file info at app cache for client {}", client);
             String charset = (format == FileFormat.CSV || format == FileFormat.TXT) ? "windows-1251" : "UTF-8";
             InputInfo inputInfo = parseFile(new FileInputStream(Utils.getLocalFilePath(fileStoragePath, client.getId(), format)),
                     charset, format);
-            return clientFileCache.put(client.getId(), inputInfo);
+            clientFileCache.put(client.getId(), inputInfo);
+            return inputInfo;
         }
         return clientFileCache.get(client.getId());
     }
@@ -127,6 +133,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
             case DXF:
                 inputInfo = this.parseDxf(inputStream);
                 break;
+            case CONSOLE_IN:
             case TXT:
                 inputInfo = this.parseTxt(inputStream, charset);
                 break;

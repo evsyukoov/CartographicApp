@@ -104,6 +104,7 @@ public class ChooseTgtCoordinateSystemBotState implements BotState {
         resp.add(startMsg);
         dataService.moveClientToStart(client, true,
                 objectMapper.writeValueAsString(Collections.singletonList(startMsg)));
+        inputContentHandler.removeInfo(client);
         return resp;
     }
 }

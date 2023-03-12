@@ -97,6 +97,7 @@ public class ChooseOutputFileFormatBotState implements BotState {
             resp.add(startMsg);
             dataService.moveClientToStart(client, true,
                     objectMapper.writeValueAsString(Collections.singletonList(startMsg)));
+            inputContentHandler.removeInfo(client);
         } else if (type == TransformationType.WGS_TO_MSK) {
             resp = Collections.singletonList(
                     keyboardService.preparePromptInlineKeyboard(List.of(Messages.BACK, Messages.HELP), client.getId(), Messages.COORDINATE_SYSTEM_TARGET_CHOICE));

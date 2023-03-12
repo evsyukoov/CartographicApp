@@ -90,6 +90,7 @@ public class ChooseSrcCoordinateSystemBotState implements BotState {
         if (type == TransformationType.MSK_TO_WGS) {
             outputInfo = Utils.mapToOutputInfo(coordinateTransformationService.transformPointsMskToWgs(srcPoints, srcSystem),
                     coordinateTransformationService.transformLinesMskToWgs(inputInfo.getPolylines(), srcSystem), dataService.getOutputFileFormatChoice(client));
+
         } else if (type == TransformationType.MSK_TO_MSK) {
             //перекидываем на следуюший стейт
             resp = Collections.singletonList(
@@ -107,6 +108,7 @@ public class ChooseSrcCoordinateSystemBotState implements BotState {
                 Messages.INPUT_PROMPT);
         resp.add(startMsg);
         dataService.moveClientToStart(client, true, objectMapper.writeValueAsString(Collections.singletonList(startMsg)));
+        inputContentHandler.removeInfo(client);
         return resp;
     }
 }

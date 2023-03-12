@@ -10,6 +10,8 @@ import java.io.InputStream;
 
 public interface InputContentHandler {
 
+    void removeInfo(Client client);
+
     InputInfo getInfo(Client client) throws FileNotFoundException, IOException;
 
     InputInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;

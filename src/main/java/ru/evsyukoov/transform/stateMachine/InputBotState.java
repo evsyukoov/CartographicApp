@@ -26,6 +26,7 @@ import ru.evsyukoov.transform.utils.Utils;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -35,9 +36,11 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -97,6 +100,9 @@ public class InputBotState implements BotState {
         if (!TelegramUtils.isCallbackMessage(update)) {
             if (TelegramUtils.isTextMessage(update)) {
                 inputInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
+                //также на всякий случай сохраняем на диск помимо кеша
+                File file = new File(Utils.getLocalFilePath(fileStoragePath, client.getId(), FileFormat.CONSOLE_IN));
+                saveTextInfo(update.getMessage().getText(), "windows-1251", file);
                 List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
                 dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
                         objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
@@ -156,6 +162,12 @@ public class InputBotState implements BotState {
             throw new UploadFileException(err, e);
         }
         return inputInfo;
+    }
+
+    private void saveTextInfo(String clientInput, String charset, File file) throws IOException {
+        Path path = Paths.get(file.getAbsolutePath());
+        List<String> lines = Arrays.stream(clientInput.split("\n")).collect(Collectors.toList());
+        Files.write(path, lines, Charset.forName(charset));
     }
 
     private void downloadTextFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException {
