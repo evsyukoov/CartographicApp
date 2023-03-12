@@ -36,3 +36,6 @@ file-storage:
 
 text:
   delimetr: ";"
+
+update:
+  notification: true
