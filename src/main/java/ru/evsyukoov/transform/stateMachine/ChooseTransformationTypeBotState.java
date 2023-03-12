@@ -60,11 +60,14 @@ public class ChooseTransformationTypeBotState implements BotState {
     public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
         log.info("{} state, client {}", getState().name(), client);
         if (!TelegramUtils.isCallbackMessage(update)) {
+            log.warn("Client {} doesn't send valid message", client.getId());
             return Collections.emptyList();
         } else {
             String payload = update.getCallbackQuery().getData().substring(Messages.CONFIRM_SYMBOL.length() + 1);
             TransformationType choice = TransformationType.getTypeByDescription(payload);
+            log.info("Client {} transformation type choice {}", client.getId(), choice == null ? "-" : choice.name());
             if (choice == null) {
+                log.warn("Not valid client input {}", payload);
                 return Collections.emptyList();
             } else {
                 EditMessageReplyMarkup markup = keyboardService.pressButtonsChoiceHandle(update, client.getId());

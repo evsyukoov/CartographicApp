@@ -96,9 +96,11 @@ public class InputBotState implements BotState {
 
     @Override
     public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
+        log.info("{} state, client {}", getState().name(), client);
         InputInfo inputInfo;
         if (!TelegramUtils.isCallbackMessage(update)) {
             if (TelegramUtils.isTextMessage(update)) {
+                log.info("Client {} request message {}", client.getId(), update.getMessage().getText());
                 inputInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
                 //также на всякий случай сохраняем на диск помимо кеша
                 File file = new File(Utils.getLocalFilePath(fileStoragePath, client.getId(), FileFormat.CONSOLE_IN));
@@ -108,6 +110,7 @@ public class InputBotState implements BotState {
                         objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
                 return response;
             } else if (TelegramUtils.isDocumentMessage(update)) {
+                log.info("Client {} request message is file", client.getId());
                 FileAbout about = downloadFile(update, client.getId());
                 inputInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
                 List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
@@ -116,6 +119,7 @@ public class InputBotState implements BotState {
                 return response;
             }
         }
+        log.warn("Client {} doesn't send valid message", client.getId());
         throw new WrongFileFormatException(Messages.WRONG_FORMAT_MESSAGE);
     }
 

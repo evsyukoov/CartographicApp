@@ -66,6 +66,7 @@ public class MessageHandler {
         if (client == null) {
             client = dataService.createNewClient(clientId, getName(update), getNickName(update));
         }
+        log.info("New request from client {}", client.getId());
         List<PartialBotApiMethod<?>> commonResponse = handleStartMessage(client, update);
         if (commonResponse != null) {
             dataService.moveClientToStart(client, false,
@@ -101,11 +102,14 @@ public class MessageHandler {
                 return initStartMessage(client, Messages.FATAL_ERROR);
             }
         }
+        log.info("Successfully send answer to client {}, response {}", client.getId(),
+                objectMapper.writeValueAsString(commonResponse));
         return commonResponse;
     }
 
     private List<PartialBotApiMethod<?>> handleBackMessage(Client client, Update update) throws IOException {
         if (TelegramUtils.isBackMessage(update)) {
+            log.info("Handle back message for client {}", client);
             List<StateHistory> history = client.getStateHistory();
             if (!CollectionUtils.isEmpty(history)) {
                 StateHistory lastState = dataService.removeLastStateAndGet(client);
@@ -142,6 +146,7 @@ public class MessageHandler {
 
     private List<PartialBotApiMethod<?>> handleStartMessage(Client client, Update update) {
         if (TelegramUtils.isStartMessage(update)) {
+            log.info("Handle start message for client {}", client);
             return initStartMessage(client);
         }
         return null;
@@ -149,6 +154,7 @@ public class MessageHandler {
 
     private List<PartialBotApiMethod<?>> handleHelpMessage(Client client, Update update) {
         if (TelegramUtils.isHelpMessage(update)) {
+            log.info("Handle help message for client {}", client);
             return Collections.singletonList(keyboardService.helpButtonHandle(update, client.getId()));
         }
         return null;

@@ -86,6 +86,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
 
     @Override
     public void removeInfo(Client client) {
+        log.info("Successfully remove input content from client {} cache", client.getId());
         clientFileCache.remove(client.getId());
     }
 
@@ -93,13 +94,14 @@ public class InputContentHandlerImpl implements InputContentHandler {
     public InputInfo getInfo(Client client) throws IOException {
         if (clientFileCache.isEmpty() || !clientFileCache.containsKey(client.getId())) {
             FileFormat format = dataService.getClientFileFormatChoice(client);
-            log.info("No file info at app cache for client {}", client);
+            log.warn("No file info at app cache for client {}", client);
             String charset = (format == FileFormat.CSV || format == FileFormat.TXT) ? "windows-1251" : "UTF-8";
             InputInfo inputInfo = parseFile(new FileInputStream(Utils.getLocalFilePath(fileStoragePath, client.getId(), format)),
                     charset, format);
             clientFileCache.put(client.getId(), inputInfo);
             return inputInfo;
         }
+        log.info("Successfully get input content from client {} cache", client.getId());
         return clientFileCache.get(client.getId());
     }
 
@@ -107,13 +109,15 @@ public class InputContentHandlerImpl implements InputContentHandler {
     public InputInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException {
         InputInfo inputInfo = parseFile(inputStream, charset, format);
         clientFileCache.put(clientId, inputInfo);
+        log.info("Successfully put input client file content {} to cache", clientId);
         return inputInfo;
     }
 
     @Override
-    public InputInfo putInfo(String text, long clientId) throws IOException {
+    public InputInfo putInfo(String text, long clientId) {
         InputInfo inputInfo = parseText(text);
         clientFileCache.put(clientId, inputInfo);
+        log.info("Successfully put input client text content {} to cache", clientId);
         return inputInfo;
     }
 
@@ -142,6 +146,9 @@ public class InputContentHandlerImpl implements InputContentHandler {
                 break;
             default:
                 return null;
+        }
+        if (Utils.isEmptyInput(inputInfo)) {
+            throw new WrongFileFormatException("Невалидный формат отправленного файла");
         }
         inputInfo.setFormat(format);
         if (inputInfo.getPoints().isEmpty()) {
@@ -367,7 +374,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
                             .findFirst()
                             .orElse(null);
                     point.setName(attribName == null ? "UNKNOWN_NAME" : attribName.getText() +
-                            (attribHeight != null && StringUtils.hasText(attribHeight.getText()) ? "" : "(h = " + attribHeight.getText() + ")"));
+                            (attribHeight != null && StringUtils.hasText(attribHeight.getText()) ? "(h = " + attribHeight.getText() + ")" : ""));
                     points.add(point);
                 });
         return points;

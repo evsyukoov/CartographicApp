@@ -4,7 +4,6 @@ import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.FileFormat;
 import ru.evsyukoov.transform.model.Client;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -12,11 +11,11 @@ public interface InputContentHandler {
 
     void removeInfo(Client client);
 
-    InputInfo getInfo(Client client) throws FileNotFoundException, IOException;
+    InputInfo getInfo(Client client) throws IOException;
 
     InputInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;
 
-    InputInfo putInfo(String text, long clientId) throws IOException;
+    InputInfo putInfo(String text, long clientId);
 
     InputInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
 

@@ -66,6 +66,7 @@ public class ChooseOutputFileFormatBotState implements BotState {
     public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
         log.info("{} state, client {}", getState().name(), client);
         if (!TelegramUtils.isCallbackMessage(update)) {
+            log.warn("Client {} doesn't send valid message", client.getId());
             return Collections.emptyList();
         } else {
             String text = update.getCallbackQuery().getData();
@@ -73,6 +74,11 @@ public class ChooseOutputFileFormatBotState implements BotState {
                 List<FileFormat> outputFormats = keyboardService.getPressedItems(update, client.getId()).stream()
                         .map(FileFormat::valueOf)
                         .collect(Collectors.toList());
+                log.info("Client {} file formats choice - {}", client.getId(),
+                        outputFormats.stream()
+                                .map(FileFormat::name)
+                                .collect(Collectors.joining(Messages.DELIMETR)));
+
                 return prepareResponse(client, outputFormats);
             }
             return Collections.singletonList(

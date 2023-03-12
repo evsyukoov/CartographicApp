@@ -127,21 +127,6 @@ public class DataServiceImpl implements DataService {
         return client.getStateHistory().get(lastIndex);
     }
 
-//    public void updateClientStateAndChosenFormat(Client client, State next, State previous, FileFormat chosenFormat) {
-//        client.setState(next);
-//        client.setPreviousState(previous);
-//        client.setFormat(chosenFormat);
-//        clientRepository.save(client);
-//    }
-//
-//    @Override
-//    public void updateClientStateAndChosenTransformation(Client client, State next, State previous, TransformationType type) {
-//        client.setState(next);
-//        client.setPreviousState(previous);
-//        client.setTransformationType(type);
-//        clientRepository.save(client);
-//    }
-
     @Override
     public void removeLastClientStateInfo(Client client) {
         List<StateHistory> history = client.getStateHistory();

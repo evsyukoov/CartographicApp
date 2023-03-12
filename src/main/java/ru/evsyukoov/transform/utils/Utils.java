@@ -1,5 +1,7 @@
 package ru.evsyukoov.transform.utils;
 
+import org.springframework.util.CollectionUtils;
+import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.dto.OutputInfo;
 import ru.evsyukoov.transform.dto.Pline;
 import ru.evsyukoov.transform.dto.Point;
@@ -18,5 +20,10 @@ public class Utils {
 
     public static String getLocalFilePath(String fileStoragePath, long clientId, FileFormat format) {
         return String.format("%s/%d.%s", fileStoragePath, clientId, format.name());
+    }
+
+    public static boolean isEmptyInput(InputInfo inputInfo) {
+        return CollectionUtils.isEmpty(inputInfo.getPoints()) &&
+                CollectionUtils.isEmpty(inputInfo.getPolylines());
     }
 }

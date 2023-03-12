@@ -68,11 +68,15 @@ public class ChooseTgtCoordinateSystemBotState implements BotState {
 
     @Override
     public List<PartialBotApiMethod<?>> handleMessage(Client client, Update update) throws Exception {
+        log.info("{} state, client {}", getState().name(), client);
         if (!TelegramUtils.isTextMessage(update)) {
+            log.warn("Client {} doesn't send valid message", client.getId());
             return Collections.emptyList();
         } else {
             String clientChoice = update.getMessage().getText();
+            log.info("Client {} system coordinate choice - {}", client.getId(), clientChoice);
             if (!dataService.getCoordinateSystemsDescription().contains(clientChoice)) {
+                log.warn("Client {} doesn't send valid coordinate system", client.getId());
                 return Collections.singletonList(
                         TelegramUtils.initSendMessage(client.getId(), Messages.NO_SUCH_COORDINATE_SYSTEM));
             }
@@ -94,6 +98,7 @@ public class ChooseTgtCoordinateSystemBotState implements BotState {
             outputInfo = Utils.mapToOutputInfo(coordinateTransformationService.transformPointsMskToMsk(srcPoints, srcSystem, tgtSystem),
                     coordinateTransformationService.transformLinesMskToMsk(inputInfo.getPolylines(), srcSystem, tgtSystem), dataService.getOutputFileFormatChoice(client));
         } else {
+            log.error("Something wrong with chosen client {} transformation type {}", client.getId(), type);
             throw new RuntimeException();
         }
 
