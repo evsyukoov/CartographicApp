@@ -6,7 +6,7 @@
 
     <groupId>ru.evsyukoov</groupId>
     <artifactId>IngGeoBot</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>2.0</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -134,7 +134,8 @@
             <version>2.7.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/net.sourceforge/kabeja -->
+<!--        https://github.com/Ticketfly/kabeja.git-->
+<!--        clone and hand install-->
         <dependency>
             <groupId>org.kabeja</groupId>
             <artifactId>tfly-kabeja-core</artifactId>
@@ -147,6 +148,8 @@
             <version>0.5.2</version>
         </dependency>
 
+<!--                https://github.com/harmanpa/jdxf.git-->
+<!--                clone and hand install-->
         <dependency>
             <groupId>com.jsevy</groupId>
             <artifactId>jdxf</artifactId>
