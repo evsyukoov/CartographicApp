@@ -1,14 +1,8 @@
 package ru.evsyukoov.transform.model;
 
-
-import ru.evsyukoov.transform.enums.FileFormat;
-import ru.evsyukoov.transform.enums.TransformationType;
-import ru.evsyukoov.transform.stateMachine.State;
-
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
@@ -17,7 +11,7 @@ import javax.persistence.Table;
 import java.util.List;
 
 @Entity
-@Table(name = "client")
+@Table(name = "clients")
 public class Client {
 
     @Id
