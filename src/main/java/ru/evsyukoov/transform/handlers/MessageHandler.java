@@ -10,8 +10,10 @@ import org.springframework.util.CollectionUtils;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.inputmessagecontent.InputTextMessageContent;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResult;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultArticle;
@@ -112,7 +114,7 @@ public class MessageHandler {
         if (TelegramUtils.isBackMessage(update)) {
             log.info("Handle back message for client {}", client);
             List<StateHistory> history = client.getStateHistory();
-            if (!CollectionUtils.isEmpty(history)) {
+            if (!CollectionUtils.isEmpty(history) && history.size() > 1) {
                 StateHistory lastState = dataService.removeLastStateAndGet(client);
                 List<Serializable> lastResp = objectMapper.readValue(lastState.getResponse(),
                         new TypeReference<List<Serializable>>() {
@@ -127,6 +129,8 @@ public class MessageHandler {
                 }
                 return response;
             }
+            log.warn("Not valid pressing BACK button by client {}", client.getId());
+            return Collections.emptyList(); //человек нажал старую кнопку BACK, находясь на первом шаге
         }
         return null;
     }
@@ -162,13 +166,29 @@ public class MessageHandler {
     }
 
     private String getName(Update update) {
-        Chat chat = update.getMessage().getChat();
-        return chat.getFirstName()
-                + (chat.getLastName() == null ? "" : (" " + chat.getLastName()));
+        if (update.getMessage() != null) {
+            Chat chat = update.getMessage().getChat();
+            return chat.getFirstName()
+                    + (chat.getLastName() == null ? "" : (" " + chat.getLastName()));
+        } else {
+            // кейс возникает потому что люди уже работали с ботом, а БД новая. Соответственно первым сообщением этих людей может быть не текст
+            // (например нажатие на callback-кнопку помощь)
+            log.warn("Received not text message as first message by client {}", update.getCallbackQuery().getFrom().getId());
+            User user = update.getCallbackQuery().getFrom();
+            return user.getFirstName()
+                    + (user.getLastName() == null ? "" : (" " + user.getLastName()));
+
+        }
     }
 
     private String getNickName(Update update) {
-        return update.getMessage().getChat().getUserName();
+        if (update.getMessage() != null) {
+            return update.getMessage().getChat().getUserName();
+        } else {
+            //аналогично getName
+            log.warn("Received not text message as first message by client {}", update.getCallbackQuery().getFrom().getId());
+            return update.getCallbackQuery().getFrom().getUserName();
+        }
     }
 
     public AnswerInlineQuery prepareInline(Update update) {
