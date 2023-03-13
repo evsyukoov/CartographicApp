@@ -58,7 +58,7 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
 
     @Override
     public ByteArrayOutputStream generateFile(List<Point> points, List<Pline> lines, FileFormat format) throws Exception {
-        if (CollectionUtils.isEmpty(points)) {
+        if (CollectionUtils.isEmpty(points) && CollectionUtils.isEmpty(lines)) {
             return null;
         }
         ByteArrayOutputStream baos = null;
