@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface DataService {
 
-    Client createNewClient(long id, String name, String nickName);
+    Client createNewClient(long id, String name, String nickName, String response);
 
     Client moveClientToStart(Client client, boolean incrementCount, String stateResponse);
 

@@ -64,7 +64,8 @@ public class MessageHandler {
         }
         Client client = dataService.findClientById(clientId);
         if (client == null) {
-            client = dataService.createNewClient(clientId, getName(update), getNickName(update));
+            client = dataService.createNewClient(clientId, getName(update), getNickName(update),
+                    objectMapper.writeValueAsString(initStartMessage(clientId)));
         }
         log.info("New request from client {}", client.getId());
         List<PartialBotApiMethod<?>> commonResponse = handleStartMessage(client, update);
@@ -86,7 +87,7 @@ public class MessageHandler {
             commonResponse = currentState.handleMessage(client, update);
         } catch (Exception e) {
             dataService.moveClientToStart(client, false,
-                    objectMapper.writeValueAsString(initStartMessage(client)));
+                    objectMapper.writeValueAsString(initStartMessage(client.getId())));
             if (e instanceof WrongFileFormatException) {
                 log.error("Error with message format: ", e);
                 return initStartMessage(client, e.getMessage());
@@ -137,17 +138,17 @@ public class MessageHandler {
                         message + "\n" + Messages.INPUT_PROMPT));
     }
 
-    private List<PartialBotApiMethod<?>> initStartMessage(Client client) {
+    private List<PartialBotApiMethod<?>> initStartMessage(long id) {
         return Collections.singletonList(
                 keyboardService.prepareOptionalKeyboard(Collections.singletonList(Messages.HELP),
-                        client.getId(),
+                        id,
                         Messages.INPUT_PROMPT));
     }
 
     private List<PartialBotApiMethod<?>> handleStartMessage(Client client, Update update) {
         if (TelegramUtils.isStartMessage(update)) {
             log.info("Handle start message for client {}", client);
-            return initStartMessage(client);
+            return initStartMessage(client.getId());
         }
         return null;
     }

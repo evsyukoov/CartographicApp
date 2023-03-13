@@ -18,6 +18,7 @@ import ru.evsyukoov.transform.repository.StateHistoryRepository;
 import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.stateMachine.State;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -54,23 +55,16 @@ public class DataServiceImpl implements DataService {
     }
 
     @Override
-    public Client createNewClient(long id, String name, String nickName) {
+    public Client createNewClient(long id, String name, String nickName, String response) {
         Client client = new Client();
         client.setId(id);
         client.setUserName(name);
         client.setNickName(nickName);
 
-        setStartStateHistory(client);
+        setStartStateHistory(client, response);
         client.setCount(0);
         log.info("Successfully create new client {}", client);
         return client;
-    }
-
-    private void setStartStateHistory(Client client) {
-        StateHistory history = new StateHistory();
-        history.setState(State.INPUT);
-        client.setStateHistory(List.of(history));
-        history.setClient(client);
     }
 
     @Override
@@ -87,7 +81,10 @@ public class DataServiceImpl implements DataService {
         StateHistory history = new StateHistory();
         history.setState(State.INPUT);
         history.setResponse(response);
-        client.setStateHistory(List.of(history));
+        List<StateHistory> states = new ArrayList<>();
+        states.add(history);
+
+        client.setStateHistory(states);
         history.setClient(client);
     }
 
