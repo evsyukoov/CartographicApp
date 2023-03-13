@@ -63,6 +63,7 @@ public class DataServiceImpl implements DataService {
 
         setStartStateHistory(client, response);
         client.setCount(0);
+        clientRepository.save(client);
         log.info("Successfully create new client {}", client);
         return client;
     }
