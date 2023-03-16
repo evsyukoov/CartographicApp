@@ -21,6 +21,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.dto.Pline;
@@ -40,6 +41,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -208,8 +211,9 @@ public class InputContentHandlerImpl implements InputContentHandler {
     @Override
     public InputInfo parseKml(InputStream inputStream) throws IOException {
         InputInfo inputInfo = new InputInfo();
+        InputSource inputSource = getInputSource(inputStream);
         try {
-            Document doc = documentBuilder.parse(inputStream);
+            Document doc = documentBuilder.parse(inputSource);
             doc.getDocumentElement().normalize();
             NodeList nodeList = doc.getElementsByTagName("Placemark");
             checkPoints(nodeList);
@@ -221,15 +225,15 @@ public class InputContentHandlerImpl implements InputContentHandler {
                     NodeList pointNode = eElement.getElementsByTagName("Point");
                     NodeList lineNode = eElement.getElementsByTagName("LineString");
                     if (pointNode != null && pointNode.getLength() != 0) {
-                        String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent();
-                        String name = eElement.getElementsByTagName("name").item(0).getTextContent();
+                        String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent().trim();
+                        String name = eElement.getElementsByTagName("name").item(0).getTextContent().trim();
                         Point point = parseKmlLine(coordinates);
                         point.setName(name);
                         checkCoordinateSystem(point, coordinatesType, coordinates);
                         coordinatesType = getPointCoordinatesType(point);
                         inputInfo.getPoints().add(point);
                     } else if (lineNode != null && lineNode.getLength() != 0) {
-                        String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent();
+                        String coordinates = eElement.getElementsByTagName("coordinates").item(0).getTextContent().trim();
                         Pline pline = new Pline();
                         String[] pointsCoords = coordinates.split("\\s+");
                         int j = 1;
@@ -243,10 +247,12 @@ public class InputContentHandlerImpl implements InputContentHandler {
                     }
                 }
             }
+            inputSource.getCharacterStream().close();
             return inputInfo;
         } catch (SAXException e) {
             String err = "Невозможно прочитать отправленный KML файл";
-            log.error(err);
+            log.error(err, e);
+            inputSource.getCharacterStream().close();
             throw new WrongFileFormatException(err);
         }
     }
@@ -262,7 +268,9 @@ public class InputContentHandlerImpl implements InputContentHandler {
                 if (!name.substring(name.indexOf('.') + 1).equalsIgnoreCase(FileFormat.KML.name()))
                     continue;
                 ByteArrayInputStream baos = new ByteArrayInputStream(zis.readAllBytes());
-                inputInfo.getPoints().addAll(parseKml(baos).getPoints());
+                InputInfo currentKml = parseKml(baos);
+                inputInfo.getPoints().addAll(currentKml.getPoints());
+                inputInfo.getPolylines().addAll(currentKml.getPolylines());
                 zis.closeEntry();
             }
         }
@@ -272,8 +280,9 @@ public class InputContentHandlerImpl implements InputContentHandler {
     @Override
     public InputInfo parseGpx(InputStream inputStream) throws IOException {
         InputInfo inputInfo = new InputInfo();
+        InputSource inputSource = getInputSource(inputStream);
         try {
-            Document doc = documentBuilder.parse(inputStream);
+            Document doc = documentBuilder.parse(inputSource);
             doc.getDocumentElement().normalize();
             NodeList nodeListPoints = doc.getElementsByTagName("wpt");
             checkPoints(nodeListPoints);
@@ -284,7 +293,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     String lat = eElement.getAttribute("lat");
                     String lon = eElement.getAttribute("lon");
-                    String name = eElement.getElementsByTagName("name").item(0).getTextContent();
+                    String name = eElement.getElementsByTagName("name").item(0).getTextContent().trim();
                     Point point = new Point(name, Double.parseDouble(lat), Double.parseDouble(lon), 0.0);
                     checkCoordinateSystem(point, coordinatesType, eElement.getTextContent());
                     coordinatesType = getPointCoordinatesType(point);
@@ -317,10 +326,12 @@ public class InputContentHandlerImpl implements InputContentHandler {
                 }
             }
             inputInfo.getPolylines().addAll(parsedLines);
+            inputSource.getCharacterStream().close();
             return inputInfo;
         } catch (SAXException e) {
             String err = "Невозможно прочитать отправленный GPX файл";
             log.error(err);
+            inputSource.getCharacterStream().close();
             throw new WrongFileFormatException(err);
         }
     }
@@ -350,7 +361,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
                 .filter(insert -> !isBlockAtTheDrawingBorder(insert))
                 .forEach(insert -> {
                     Point3D point3D = insert.getInsertPoint();
-                    Point point = new Point(point3D.getX(), point3D.getY(), point3D.getZ());
+                    Point point = new Point(point3D.getY(), point3D.getX(), point3D.getZ());
 
                     Attrib attribName = insert.getAttributes()
                             .stream()
@@ -417,7 +428,7 @@ public class InputContentHandlerImpl implements InputContentHandler {
     }
 
     private Point point3DtoPoint(Point3D p3D) {
-        return new Point(p3D.getX(), p3D.getY(), p3D.getZ());
+        return new Point(p3D.getY(), p3D.getX(), p3D.getZ());
     }
 
     private boolean isBlockAtTheDrawingBorder(Insert insert) {
@@ -484,5 +495,13 @@ public class InputContentHandlerImpl implements InputContentHandler {
         }
         return CoordinatesType.MSK;
 
+    }
+
+    private InputSource getInputSource(InputStream inputStream) {
+        InputSource inputSource;
+        Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+        inputSource = new InputSource();
+        inputSource.setCharacterStream(reader);
+        return inputSource;
     }
 }

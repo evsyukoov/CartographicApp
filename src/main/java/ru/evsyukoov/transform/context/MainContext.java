@@ -65,8 +65,12 @@ public class MainContext {
 
     @Bean
     DocumentBuilder documentBuilder() throws ParserConfigurationException {
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        return dbFactory.newDocumentBuilder();
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setValidating(false);
+        factory.setNamespaceAware(false);
+        factory.setIgnoringComments(true);
+        factory.setIgnoringElementContentWhitespace(true);
+        return factory.newDocumentBuilder();
     }
 
     @Bean
