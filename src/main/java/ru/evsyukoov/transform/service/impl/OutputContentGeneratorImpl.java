@@ -121,8 +121,9 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
         List<Double> yPoints = new ArrayList<>();
         for (Pline line : lines) {
             line.getPolyline().forEach(point -> {
-                xPoints.add(point.x);
-                yPoints.add(point.y);
+                // X и Y автокада повернуты на 90, при парсинге DXF это также учитывается
+                xPoints.add(point.y);
+                yPoints.add(point.x);
             });
             graphics.drawPolyline(ArrayUtils.toPrimitive(xPoints.toArray(new Double[0])),
                     ArrayUtils.toPrimitive(yPoints.toArray(new Double[0])), xPoints.size());
@@ -132,8 +133,9 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
     private void writeBlocks(DXFDocument document, List<Point> points) {
         DXFGraphics graphics = document.getGraphics();
         for (Point p : points) {
-            RealPoint point = new RealPoint(p.x, p.y, p.h);
-            DXFCircle circle = new DXFCircle(new RealPoint(p.x, p.y, p.h), Const.CIRCLE_RADIUS, graphics);
+            // X и Y автокада повернуты на 90, при парсинге DXF это также учитывается
+            RealPoint point = new RealPoint(p.y, p.x, p.h);
+            DXFCircle circle = new DXFCircle(point, Const.CIRCLE_RADIUS, graphics);
             DXFText text = new DXFText(p.name, shiftPoint(point), dxfStyle, graphics);
             document.addEntity(circle);
             document.addEntity(text);

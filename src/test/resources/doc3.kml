@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>Line Features-5.kmz</name>
+	<open>1</open>
+	<StyleMap id="m_ylw-pushpin">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#s_ylw-pushpin</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#s_ylw-pushpin_hl</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="s_ylw-pushpin">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+	</Style>
+	<Style id="s_ylw-pushpin_hl">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+	</Style>
+	<Style id="style">
+		<LineStyle>
+			<color>ffffff00</color>
+			<width>2</width>
+		</LineStyle>
+	</Style>
+	<Style id="style0">
+		<LineStyle>
+			<color>ffffff00</color>
+			<width>2</width>
+		</LineStyle>
+	</Style>
+	<StyleMap id="stylemap_id0">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#style</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#style0</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Placemark>
+		<name>Line Features-5</name>
+		<description>бла бла бюла</description>
+		<styleUrl>#stylemap_id0</styleUrl>
+		<LineString>
+			<extrude>1</extrude>
+			<coordinates>
+				76.4259760706,61.0484652514,0 76.42254110650001,61.06454904229999,0 76.40822621629999,61.0851329176,0 76.4101240533,61.08697235889999,0 76.41107469560001,61.1044201816,0 76.400280314,61.1113153146,0 76.4022372827,61.1164105876,0 76.4136031659,61.11979176049999,0 76.42823241729999,61.12907895759999,0 76.42682561700001,61.1314370787,0 76.4429368248,61.1372422592,0 76.4493595783,61.1370665596,0 76.4579700828,61.1398363376,0 76.4609155178,61.14338626679999,0 76.5060480489,61.1572713471,0 76.51332051910001,61.15957302910001,0 76.5453525967,61.1699402735,0 76.5622323389,61.17577501600001,0 76.5659304672,61.18063003340001,0 76.57387222129999,61.1833789472,0 76.5875793925,61.1841813657,0 76.6180013916,61.1979441796,0 76.61760319939999,61.2015274535,0 76.621294046,61.205805897,0 76.6477141578,61.2079251438,0 76.68046654929999,61.2114249076,0 76.6825021131,61.21236375790001,0 76.69361892249999,61.2124207505,0 76.71724831980001,61.2086130746,0 76.71826583550001,61.2090155508,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark>
+		<name>метка</name>
+		<LookAt>
+			<longitude>76.55927307475</longitude>
+			<latitude>61.13044300095</latitude>
+			<altitude>0</altitude>
+			<heading>-2.544443745170813e-14</heading>
+			<tilt>0</tilt>
+			<range>33691.34586757101</range>
+			<gx:altitudeMode>relativeToSeaFloor</gx:altitudeMode>
+		</LookAt>
+		<styleUrl>#m_ylw-pushpin</styleUrl>
+		<Point>
+			<gx:drawOrder>1</gx:drawOrder>
+			<coordinates>76.55927307474998,61.13044300094999,0</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark>
+		<name>Метка 1</name>
+		<LookAt>
+			<longitude>76.47408254854756</longitude>
+			<latitude>61.15194931794377</latitude>
+			<altitude>0</altitude>
+			<heading>-0.07461087132376969</heading>
+			<tilt>0</tilt>
+			<range>24947.09635397446</range>
+			<gx:altitudeMode>relativeToSeaFloor</gx:altitudeMode>
+		</LookAt>
+		<styleUrl>#m_ylw-pushpin</styleUrl>
+		<Point>
+			<gx:drawOrder>1</gx:drawOrder>
+			<coordinates>76.47408254854756,61.15194931794377,0</coordinates>
+		</Point>
+	</Placemark>
+	<Style id="line1">
+        <LineStyle>
+          <color>FF808080</color>
+          <width>1</width>
+        </LineStyle>
+        <IconStyle><Icon></Icon></IconStyle>
+      </Style>
+      <Folder>
+        <name>Line Features</name>
+        <description>Line Features</description>
+        <Placemark>
+          <description><![CDATA[Unclassified Line Feature<BR><BR><B>LENGTH</B> = 2.102 km<BR><B>ENCLOSED_AREA</B> = 5.095 ha<BR><B>SINUOSITY</B> = 0]]></description>
+          <name><![CDATA[�������]]></name>
+          <styleUrl>#line1</styleUrl>
+          <MultiGeometry>
+          <Point>
+          <coordinates>88.1662346090,69.3112947118,0</coordinates>
+          </Point>
+          <LineString>
+            <coordinates>
+              88.1700169564,69.3131220288,0
+              88.1710472247,69.3128506663,0
+              88.1693040183,69.3120063972,0
+              88.1637462259,69.3093157331,0
+              88.1601368234,69.3075526249,0
+              88.1567522577,69.3058990152,0
+              88.1561333532,69.3056001938,0
+              88.1550989191,69.3058738571,0
+              88.1556905398,69.3061618477,0
+              88.1568131219,69.3067051787,0
+              88.1597838362,69.3081618715,0
+              88.1633337784,69.3098902195,0
+              88.1691354397,69.3126992040,0
+              88.1700169564,69.3131220288,0
+              88.1700169564,69.3131220288,0
+            </coordinates>
+          </LineString>
+          </MultiGeometry>
+        </Placemark>
+      </Folder>
+</Document>
+</kml>

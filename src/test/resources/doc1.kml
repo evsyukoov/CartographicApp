@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:globalmapper="http://www.bluemarblegeo.com/globalmapper">
+<Document>
+  <!-- Begin Style Definitions -->
+  <Style id="line1">
+    <LineStyle>
+      <color>FF808080</color>
+      <width>1</width>
+    </LineStyle>
+    <IconStyle><Icon></Icon></IconStyle>
+  </Style>
+  <Folder>
+    <name>Line Features</name>
+    <description>Line Features</description>
+    <Placemark>
+      <description><![CDATA[Unclassified Line Feature<BR><BR><B>LENGTH</B> = 2.102 km<BR><B>ENCLOSED_AREA</B> = 5.095 ha<BR><B>SINUOSITY</B> = 0]]></description>
+      <name><![CDATA[Границы]]></name>
+      <styleUrl>#line1</styleUrl>
+      <MultiGeometry>
+      <Point>
+      <coordinates>88.1662346090,69.3112947118,0</coordinates>
+      </Point>
+      <LineString>
+        <coordinates>
+          88.1700169564,69.3131220288,0
+          88.1710472247,69.3128506663,0
+          88.1693040183,69.3120063972,0
+          88.1637462259,69.3093157331,0
+          88.1601368234,69.3075526249,0
+          88.1567522577,69.3058990152,0
+          88.1561333532,69.3056001938,0
+          88.1550989191,69.3058738571,0
+          88.1556905398,69.3061618477,0
+          88.1568131219,69.3067051787,0
+          88.1597838362,69.3081618715,0
+          88.1633337784,69.3098902195,0
+          88.1691354397,69.3126992040,0
+          88.1700169564,69.3131220288,0
+          88.1700169564,69.3131220288,0
+        </coordinates>
+      </LineString>
+      </MultiGeometry>
+    </Placemark>
+  </Folder>
+</Document>
+</kml>

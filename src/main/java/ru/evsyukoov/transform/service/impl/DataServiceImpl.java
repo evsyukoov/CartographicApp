@@ -14,7 +14,6 @@ import ru.evsyukoov.transform.model.CoordinateSystem;
 import ru.evsyukoov.transform.model.StateHistory;
 import ru.evsyukoov.transform.repository.ClientRepository;
 import ru.evsyukoov.transform.repository.CoordinateSystemRepository;
-import ru.evsyukoov.transform.repository.StateHistoryRepository;
 import ru.evsyukoov.transform.service.DataService;
 import ru.evsyukoov.transform.stateMachine.State;
 
@@ -32,8 +31,6 @@ public class DataServiceImpl implements DataService {
 
     private final CoordinateSystemRepository coordinateSystemRepository;
 
-    private final StateHistoryRepository stateHistoryRepository;
-
     private final Transliterator latinToCyrillic;
 
     private final Transliterator cyrillicToLatin;
@@ -44,12 +41,10 @@ public class DataServiceImpl implements DataService {
     @Autowired
     public DataServiceImpl(ClientRepository clientRepository,
                            CoordinateSystemRepository coordinateSystemRepository,
-                           StateHistoryRepository stateHistoryRepository,
                            Transliterator latinToCyrillic,
                            Transliterator cyrillicToLatin) {
         this.clientRepository = clientRepository;
         this.coordinateSystemRepository = coordinateSystemRepository;
-        this.stateHistoryRepository = stateHistoryRepository;
         this.latinToCyrillic = latinToCyrillic;
         this.cyrillicToLatin = cyrillicToLatin;
     }

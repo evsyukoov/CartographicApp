@@ -104,7 +104,7 @@ public class InputBotState implements BotState {
                 inputInfo = fileParser.putInfo(update.getMessage().getText(), client.getId());
                 //также на всякий случай сохраняем на диск помимо кеша
                 File file = new File(Utils.getLocalFilePath(fileStoragePath, client.getId(), FileFormat.CONSOLE_IN));
-                saveTextInfo(update.getMessage().getText(), "windows-1251", file);
+                saveTextInfo(update.getMessage().getText(), file);
                 List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
                 dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
                         objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
@@ -112,7 +112,7 @@ public class InputBotState implements BotState {
             } else if (TelegramUtils.isDocumentMessage(update)) {
                 log.info("Client {} request message is file", client.getId());
                 FileAbout about = downloadFile(update, client.getId());
-                inputInfo = fileParser.putInfo(about.contentStream, about.charset, about.fileFormat, client.getId());
+                inputInfo = fileParser.putInfo(about.contentStream, about.fileFormat, client.getId());
                 List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
                 dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
                         objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
@@ -151,11 +151,10 @@ public class InputBotState implements BotState {
             String fileServerPath = getFileServerPath(doc);
             FileFormat format = findExtension(fileServerPath);
             URL downloadLink = new URL("https://api.telegram.org/file/bot" + token + "/" + fileServerPath);
-            String charset = (format == FileFormat.CSV || format == FileFormat.TXT) ? "windows-1251" : "UTF-8";
             String localFileName = Utils.getLocalFilePath(fileStoragePath, id, format);
-            inputInfo = new FileAbout(downloadLink.openStream(), charset, format);
+            inputInfo = new FileAbout(downloadLink.openStream(), format);
             if (format != FileFormat.KMZ) {
-                downloadTextFileAndSave(downloadLink.openStream(), new File(localFileName), charset);
+                downloadTextFileAndSave(downloadLink.openStream(), new File(localFileName));
             } else {
                 uploadZipFileAndSave(downloadLink.openStream(), new File(localFileName));
             }
@@ -168,15 +167,15 @@ public class InputBotState implements BotState {
         return inputInfo;
     }
 
-    private void saveTextInfo(String clientInput, String charset, File file) throws IOException {
+    private void saveTextInfo(String clientInput, File file) throws IOException {
         Path path = Paths.get(file.getAbsolutePath());
         List<String> lines = Arrays.stream(clientInput.split("\n")).collect(Collectors.toList());
-        Files.write(path, lines, Charset.forName(charset));
+        Files.write(path, lines);
     }
 
-    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException {
+    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile) throws IOException {
         try (FileWriter fw = new FileWriter(localFile);
-             BufferedReader uploadIn = new BufferedReader(new InputStreamReader(serverInputStream, charset))) {
+             BufferedReader uploadIn = new BufferedReader(new InputStreamReader(serverInputStream))) {
             String s;
             while ((s = uploadIn.readLine()) != null) {
                 fw.write(String.format("%s\n", s));
@@ -211,21 +210,15 @@ public class InputBotState implements BotState {
 
     private static class FileAbout {
         InputStream contentStream;
-        String charset;
         FileFormat fileFormat;
 
-        public FileAbout(InputStream contentStream, String charset, FileFormat fileFormat) {
+        public FileAbout(InputStream contentStream, FileFormat fileFormat) {
             this.contentStream = contentStream;
-            this.charset = charset;
             this.fileFormat = fileFormat;
         }
 
         public InputStream getContentStream() {
             return contentStream;
-        }
-
-        public String getCharset() {
-            return charset;
         }
 
         public FileFormat getFileFormat() {

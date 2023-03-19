@@ -9,52 +9,36 @@ import java.io.InputStream;
 
 public interface InputContentHandler {
 
+    /**
+     * Удаление отправленного клиентом контента из кеша
+     * @param client
+     */
     void removeInfo(Client client);
 
-    InputInfo getInfo(Client client) throws IOException;
-
-    InputInfo putInfo(InputStream inputStream, String charset, FileFormat format, long clientId) throws IOException;
-
-    InputInfo putInfo(String text, long clientId);
-
-    InputInfo parseFile(InputStream inputStream, String charset, FileFormat format) throws IOException;
-
     /**
-     * @param text - Текст, отправленный пользователем
-     * @return
-     */
-    InputInfo parseText(String text);
-
-    InputInfo parseCsv(InputStream inputStream, String charset) throws IOException;
-
-    InputInfo parseTxt(InputStream inputStream, String charset) throws IOException;
-
-    /**
-     * Парсим только точки, без линий
-     * @param inputStream - IS с файлового сервера ТГ
-     * @return
-     */
-    InputInfo parseKml(InputStream inputStream) throws IOException;
-
-    /**
-     * Архив, состоящий из нескольких KML файлов и папок с графическим отображением меток (игнорируем)
-     * @param inputStream
+     * Получение клиентских данных из кеша или с диска, если кеш пуст
+     * @param client
      * @return
      * @throws IOException
      */
-    InputInfo parseKmz(InputStream inputStream) throws IOException;
+    InputInfo getInfo(Client client) throws IOException;
 
     /**
-     * Парсим только точки, без линий
-     * @param inputStream - IS с файлового сервера ТГ
+     * Получить контент из входящего потока и положить в кеш
+     * @param inputStream
+     * @param format
+     * @param clientId
      * @return
+     * @throws IOException
      */
-    InputInfo parseGpx(InputStream inputStream) throws IOException;
+    InputInfo putInfo(InputStream inputStream, FileFormat format, long clientId) throws IOException;
 
     /**
-     * Парсим только блоки и полилинии, имя точки - первый непустой атрибут блока
-     * @param inputStream - IS с файлового сервера ТГ
+     * Получить контент из текста и положить в кеш
+     * @param text
+     * @param clientId
      * @return
      */
-    InputInfo parseDxf(InputStream inputStream);
+    InputInfo putInfo(String text, long clientId);
+
 }
