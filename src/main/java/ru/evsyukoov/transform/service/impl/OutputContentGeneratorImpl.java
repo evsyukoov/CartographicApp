@@ -117,9 +117,9 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
 
     private void writeLines(DXFDocument document, List<Pline> lines) {
         DXFGraphics graphics = document.getGraphics();
-        List<Double> xPoints = new ArrayList<>();
-        List<Double> yPoints = new ArrayList<>();
         for (Pline line : lines) {
+            List<Double> xPoints = new ArrayList<>();
+            List<Double> yPoints = new ArrayList<>();
             line.getPolyline().forEach(point -> {
                 // X и Y автокада повернуты на 90, при парсинге DXF это также учитывается
                 xPoints.add(point.y);
