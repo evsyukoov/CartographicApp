@@ -154,7 +154,7 @@
         <dependency>
             <groupId>com.jsevy</groupId>
             <artifactId>jdxf</artifactId>
-            <version>dev</version>
+            <version>1.0</version>
         </dependency>
 
 
