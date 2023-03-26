@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import ru.evsyukoov.transform.constants.Const;
 import ru.evsyukoov.transform.constants.Messages;
 import ru.evsyukoov.transform.dto.InputInfo;
 import ru.evsyukoov.transform.enums.CoordinatesType;
@@ -28,6 +29,7 @@ import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -36,7 +38,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -112,7 +113,8 @@ public class InputBotState implements BotState {
             } else if (TelegramUtils.isDocumentMessage(update)) {
                 log.info("Client {} request message is file", client.getId());
                 FileAbout about = downloadFile(update, client.getId());
-                inputInfo = fileParser.putInfo(about.contentStream, about.fileFormat, client.getId());
+                inputInfo = fileParser.putInfo(new FileInputStream(Utils.getLocalFilePath(fileStoragePath, client.getId(), about.fileFormat)),
+                        about.fileFormat, client.getId());
                 List<PartialBotApiMethod<?>> response = Collections.singletonList(prepareOutputMessage(inputInfo, client.getId()));
                 dataService.updateClientState(client, State.CHOOSE_TRANSFORMATION_TYPE,
                         objectMapper.writeValueAsString(response), inputInfo.getFormat().name());
@@ -152,9 +154,9 @@ public class InputBotState implements BotState {
             FileFormat format = findExtension(fileServerPath);
             URL downloadLink = new URL("https://api.telegram.org/file/bot" + token + "/" + fileServerPath);
             String localFileName = Utils.getLocalFilePath(fileStoragePath, id, format);
-            inputInfo = new FileAbout(downloadLink.openStream(), format);
+            inputInfo = new FileAbout(format, (format == FileFormat.CSV || format == FileFormat.TXT ? Const.WIN_1251_ENCODING : Const.UTF_8_ENCODING));
             if (format != FileFormat.KMZ) {
-                downloadTextFileAndSave(downloadLink.openStream(), new File(localFileName));
+                downloadTextFileAndSave(downloadLink.openStream(), new File(localFileName), inputInfo.charset);
             } else {
                 uploadZipFileAndSave(downloadLink.openStream(), new File(localFileName));
             }
@@ -173,9 +175,9 @@ public class InputBotState implements BotState {
         Files.write(path, lines);
     }
 
-    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile) throws IOException {
+    private void downloadTextFileAndSave(InputStream serverInputStream, File localFile, String charset) throws IOException {
         try (FileWriter fw = new FileWriter(localFile);
-             BufferedReader uploadIn = new BufferedReader(new InputStreamReader(serverInputStream))) {
+             BufferedReader uploadIn = new BufferedReader(new InputStreamReader(serverInputStream, charset))) {
             String s;
             while ((s = uploadIn.readLine()) != null) {
                 fw.write(String.format("%s\n", s));
@@ -209,20 +211,20 @@ public class InputBotState implements BotState {
     }
 
     private static class FileAbout {
-        InputStream contentStream;
         FileFormat fileFormat;
+        String charset;
 
-        public FileAbout(InputStream contentStream, FileFormat fileFormat) {
-            this.contentStream = contentStream;
+        public FileAbout(FileFormat fileFormat, String charset) {
             this.fileFormat = fileFormat;
-        }
-
-        public InputStream getContentStream() {
-            return contentStream;
+            this.charset = charset;
         }
 
         public FileFormat getFileFormat() {
             return fileFormat;
+        }
+
+        public String getCharset() {
+            return charset;
         }
     }
 }

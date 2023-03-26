@@ -149,7 +149,7 @@
             <version>0.5.2</version>
         </dependency>
 
-<!--                https://github.com/harmanpa/jdxf.git-->
+<!--                https://github.com/evsyukoov/jdxf.git -->
 <!--                clone and hand install-->
         <dependency>
             <groupId>com.jsevy</groupId>

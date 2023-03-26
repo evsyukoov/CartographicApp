@@ -17,6 +17,8 @@ public class InputInfo {
 
     private List<Point> points = new ArrayList<>();
 
+    private String charset;
+
     public List<Point> getPoints() {
         return points;
     }
@@ -45,5 +47,13 @@ public class InputInfo {
 
     public void setFormat(FileFormat format) {
         this.format = format;
+    }
+
+    public String getCharset() {
+        return charset;
+    }
+
+    public void setCharset(String charset) {
+        this.charset = charset;
     }
 }

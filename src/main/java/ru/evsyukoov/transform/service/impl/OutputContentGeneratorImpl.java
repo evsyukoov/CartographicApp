@@ -32,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,17 +79,18 @@ public class OutputContentGeneratorImpl implements OutputContentGenerator {
 
     @Override
     public ByteArrayOutputStream generateCsv(List<Point> points, List<Pline> lines) throws IOException {
+        Charset charset = Charset.forName(Const.WIN_1251_ENCODING);
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             for (Point p : points) {
-                out.write(String.format("%s%s%s%s%s%s%s\n", p.name, delimetr, p.x, delimetr, p.y, delimetr, p.h).getBytes());
+                out.write(String.format("%s%s%s%s%s%s%s\n", p.name, delimetr, p.x, delimetr, p.y, delimetr, p.h).getBytes(charset));
             }
             int i = 1;
             for (Pline line : lines) {
                 int j = 1;
-                out.write(String.format("Polyline N %d\n", i).getBytes());
+                out.write(String.format("Polyline N %d\n", i).getBytes(charset));
                 for (Point p : line.getPolyline()) {
                     out.write(
-                            String.format("Vertex N %d%s%s%s%s%s%s\n", j, delimetr, p.x, delimetr, p.y, delimetr, p.h).getBytes());
+                            String.format("Vertex N %d%s%s%s%s%s%s\n", j, delimetr, p.x, delimetr, p.y, delimetr, p.h).getBytes(charset));
                     j++;
                 }
                 i++;
