@@ -381,7 +381,7 @@ public class ParserServiceImpl implements ParserService {
                             .findFirst()
                             .orElse(null);
                     point.setName(attribName == null ? "UNKNOWN_NAME" : attribName.getText() +
-                            (attribHeight != null && StringUtils.hasText(attribHeight.getText()) ? "(h = " + attribHeight.getText() + ")" : ""));
+                            (attribHeight != null && StringUtils.hasText(attribHeight.getText()) ? "(" + attribHeight.getText() + ")" : ""));
                     points.add(point);
                 });
         return points;
